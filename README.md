@@ -1,4 +1,5 @@
 FinTech web application that flags recurring subscriptions and memberships and helps users identify hidden expenses and manage their personal finances.
+
 Tech stack: Python (Flask) backend, PostgreSQL (database), React (Vite) frontend, Plaid API.
 
 Features include:
