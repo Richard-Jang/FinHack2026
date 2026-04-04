@@ -4,6 +4,7 @@ import {
   CreditCard, 
   Wallet, 
   PieChart, 
+  Calendar,
   Landmark, 
   ChevronRight,
   Bot,
@@ -90,6 +91,155 @@ export function Component() {
   const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 100 } }
+  };
+
+  // ------------------------------
+  // Spending chart + upcoming bills
+  // ------------------------------
+  // Match transactions to the requested categories using simple keyword rules.
+  // Categories: housing, utilities, food, transportation, debt, insurance, medical
+  const CATEGORY_DEFS = [
+    { id: 'housing', name: 'Housing', keywords: ['rent', 'mortgage', 'landlord', 'apartment', 'lease'], bg: 'bg-fuchsia-500', stroke: '#d946ef' },
+    { id: 'utilities', name: 'Utilities', keywords: ['electric', 'electricity', 'water', 'internet', 'gas bill', 'utility', 'utilities'], bg: 'bg-purple-600', stroke: '#9333ea' },
+    { id: 'food', name: 'Food', keywords: ['grocery', 'whole foods', 'walmart', 'restaurant', 'dining', 'starbucks', 'ubereats', 'grubhub', 'instacart', 'food'], bg: 'bg-amber-500', stroke: '#f59e0b' },
+    { id: 'transportation', name: 'Transportation', keywords: ['uber', 'lyft', 'gas', 'shell', 'chevron', 'mobil', 'bus', 'train', 'taxi', 'metro'], bg: 'bg-pink-400', stroke: '#f472b6' },
+    { id: 'debt', name: 'Debt', keywords: ['credit card', 'payment', 'loan', 'student loan', 'mortgage payment', 'creditcard'], bg: 'bg-red-500', stroke: '#ef4444' },
+    { id: 'insurance', name: 'Insurance', keywords: ['insurance', 'premium', 'geico', 'progressive', 'state farm'], bg: 'bg-green-500', stroke: '#10b981' },
+    { id: 'medical', name: 'Medical', keywords: ['hospital', 'clinic', 'doctor', 'pharmacy', 'cvs', 'walgreens', 'medical'], bg: 'bg-sky-400', stroke: '#38bdf8' },
+    { id: 'other', name: 'Other', keywords: [], bg: 'bg-gray-400', stroke: '#9ca3af' },
+  ];
+
+  const totalExpenses = useMemo(() => transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0), [transactions]);
+
+  const categories = useMemo(() => {
+    // initialize
+    const map: Record<string, { id: string; name: string; amount: number; bg: string; stroke: string }> = {};
+    CATEGORY_DEFS.forEach(def => { map[def.id] = { id: def.id, name: def.name, amount: 0, bg: def.bg, stroke: def.stroke }; });
+
+    // classify and sum negative transactions
+    transactions.filter(t => t.amount < 0).forEach(t => {
+      const name = (t.name || '').toLowerCase();
+      let matched = false;
+      for (const def of CATEGORY_DEFS) {
+        if (def.keywords.some(k => name.includes(k))) {
+          map[def.id].amount += Math.abs(t.amount);
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) map['other'].amount += Math.abs(t.amount);
+    });
+
+    // convert to array and compute percentages
+    const arr = Object.values(map);
+    return arr.map(a => ({ ...a, percentage: totalExpenses > 0 ? Math.round((a.amount / totalExpenses) * 100) : 0 }));
+  }, [transactions, totalExpenses]);
+
+  const MOCK_UPCOMING_BILLS = [
+    { id: 1, name: 'Internet', amount: 69.99, date: 'Apr 10, 2026', daysAway: 6 },
+    { id: 2, name: 'Electricity', amount: 125.00, date: 'Apr 12, 2026', daysAway: 8 },
+    { id: 3, name: 'Car Insurance', amount: 89.99, date: 'Apr 20, 2026', daysAway: 16 },
+  ];
+
+  const SpendingBreakdownChart = ({ categoriesProp, totalProp }: { categoriesProp: any[]; totalProp: number }) => {
+    let cumulativePercent = 0;
+
+    const cats = categoriesProp;
+    const total = totalProp;
+
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden p-5">
+        <div className="flex items-center space-x-2 mb-6">
+          <PieChart size={20} className="text-purple-600 dark:text-purple-400" />
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Spending Breakdown</h2>
+        </div>
+        
+        <div className="flex flex-col md:flex-row items-center md:items-center justify-center md:justify-between gap-8 md:px-4">
+          <div className="relative w-48 h-48 flex-shrink-0">
+            <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+              <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-gray-100 dark:text-gray-700"></circle>
+              {cats.map((cat) => {
+                const offset = -cumulativePercent;
+                cumulativePercent += cat.percentage;
+                return (
+                  <circle
+                    key={cat.id}
+                    cx="18"
+                    cy="18"
+                    r="15.915"
+                    fill="transparent"
+                    stroke={cat.stroke}
+                    strokeWidth="4"
+                    strokeDasharray={`${cat.percentage} ${100 - cat.percentage}`}
+                    strokeDashoffset={offset}
+                    className="transition-all duration-1000 ease-out hover:opacity-80 hover:stroke-[5px] cursor-pointer"
+                  ></circle>
+                );
+              })}
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-2xl font-bold text-gray-900 dark:text-white">${total}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Total Spent</span>
+            </div>
+          </div>
+
+          <div className="flex-1 w-full space-y-4">
+            {cats.map(cat => (
+              <div key={cat.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <div className="flex items-center space-x-3">
+                  <div className={`${cat.bg} w-3.5 h-3.5 rounded-full`}></div>
+                  <span className="font-medium text-gray-700 dark:text-gray-200">{cat.name}</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-bold text-gray-900 dark:text-white block">${cat.amount.toFixed(2)}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{cat.percentage}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const UpcomingBillsTimeline = () => {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-2">
+          <Calendar size={20} className="text-purple-600 dark:text-purple-400" />
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Upcoming Bills</h2>
+        </div>
+        <div className="p-5 relative">
+          <div className="absolute left-[33px] top-8 bottom-8 w-0.5 bg-gray-100 dark:bg-gray-700"></div>
+
+          <div className="space-y-6 relative">
+            {MOCK_UPCOMING_BILLS.map((bill) => (
+              <div key={bill.id} className="flex items-start">
+                <div className="flex flex-col items-center mr-4 relative z-10">
+                  <div className={`h-4 w-4 rounded-full border-2 border-white dark:border-gray-800 ${
+                    bill.daysAway <= 3 ? 'bg-red-500' : 'bg-purple-500'
+                  }`}></div>
+                </div>
+                <div className="flex-1 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-100 dark:border-gray-700/50 mt-[-10px] hover:shadow-sm transition-shadow">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-gray-900 dark:text-white">{bill.name}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">${bill.amount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-500 dark:text-gray-400">Due: {bill.date}</span>
+                    <span className={`font-medium ${
+                      bill.daysAway <= 3 ? 'text-red-600 dark:text-red-400' : 'text-purple-600 dark:text-purple-400'
+                    }`}>
+                      In {bill.daysAway} days
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -212,7 +362,19 @@ export function Component() {
         <div className="space-y-6">
           
           {/* Subscriptions */}
-          <motion.div variants={itemVariants} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <motion.div variants={itemVariants} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              {/* Spending breakdown chart inserted above subscriptions area */}
+            </motion.div>
+
+            <motion.div variants={itemVariants}>
+              <SpendingBreakdownChart categoriesProp={categories} totalProp={totalExpenses} />
+            </motion.div>
+
+            <motion.div variants={itemVariants}>
+              <UpcomingBillsTimeline />
+            </motion.div>
+
+            <motion.div variants={itemVariants} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
              <div className="p-5 border-b border-gray-100">
               <h2 className="text-lg font-bold text-gray-900">Verified Subscriptions</h2>
             </div>
