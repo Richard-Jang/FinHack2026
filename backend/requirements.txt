@@ -1,1 +1,4 @@
-flask
+fastapi
+uvicorn
+plaid-python
+python-dotenv
