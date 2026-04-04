@@ -11,7 +11,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { motion, type Variants } from 'framer-motion';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../AuthContext';
 
@@ -29,6 +29,9 @@ export function Component() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingGenerate, setLoadingGenerate] = useState(false);
   const { user } = useAuth();
+  
+  // Ref lock to prevent React Strict Mode or Auth re-renders from double-firing the LLM API on load.
+  const hasFetchedLLM = useRef(false);
 
   const [chartData, setChartData] = useState<any[]>([]);
   const [chartAdvice, setChartAdvice] = useState<string>("");
@@ -38,8 +41,24 @@ export function Component() {
   const [recurringCharges, setRecurringCharges] = useState<any[]>([]);
   const [isRecurringLoading, setIsRecurringLoading] = useState(false);
 
-  const leaks = useMemo(() => recurringCharges.filter(c => c.isLeak), [recurringCharges]);
-  const subscriptions = useMemo(() => recurringCharges.filter(c => !c.isLeak), [recurringCharges]);
+  const MOCK_RECURRING = [
+    { name: 'Planet Fitness', amount: 24.99, nextChargeDate: '2026-04-10', isLeak: true },
+    { name: 'Amazon Prime', amount: 14.99, nextChargeDate: '2026-04-15', isLeak: false },
+    { name: 'Netflix', amount: 15.49, nextChargeDate: '2026-04-18', isLeak: false },
+    { name: 'Spotify Premium', amount: 10.99, nextChargeDate: '2026-05-02', isLeak: false },
+    { name: 'Unknown Subscription', amount: 89.00, nextChargeDate: '2026-04-06', isLeak: true }
+  ];
+
+  const leaks = useMemo(() => {
+    const data = recurringCharges.length > 0 ? recurringCharges : MOCK_RECURRING;
+    return data.filter(c => c.isLeak);
+  }, [recurringCharges]);
+
+  const subscriptions = useMemo(() => {
+    const data = recurringCharges.length > 0 ? recurringCharges : MOCK_RECURRING;
+    return data.filter(c => !c.isLeak);
+  }, [recurringCharges]);
+
   const totalLeakAmount = useMemo(() => leaks.reduce((s, c) => s + Number(c.amount), 0), [leaks]);
   const totalSubAmount = useMemo(() => subscriptions.reduce((s, c) => s + Number(c.amount), 0), [subscriptions]);
 
@@ -102,8 +121,11 @@ export function Component() {
     if (error) console.error("Error fetching transactions:", error);
     if (data) {
       setTransactions(data);
-      fetchSpendingSummary(data);
-      fetchRecurringCharges(data);
+      if (!hasFetchedLLM.current && data.length > 0) {
+        hasFetchedLLM.current = true;
+        fetchSpendingSummary(data);
+        fetchRecurringCharges(data);
+      }
     }
   }, [user?.id, fetchSpendingSummary, fetchRecurringCharges]);
 
@@ -211,8 +233,15 @@ export function Component() {
   const totalExpenses = useMemo(() => transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0), [transactions]);
 
   const categories = useMemo(() => {
-    if (chartData.length === 0) return [];
-    return chartData.map(c => {
+    const dataToProcess = chartData.length > 0 ? chartData : [
+      { label: 'Housing', percentage: 35 },
+      { label: 'Food', percentage: 25 },
+      { label: 'Transportation', percentage: 20 },
+      { label: 'Utilities', percentage: 10 },
+      { label: 'Other', percentage: 10 }
+    ];
+
+    return dataToProcess.map(c => {
       const label = c.label || c.name || 'Other';
       const percentage = c.percentage || 0;
       
@@ -412,7 +441,7 @@ export function Component() {
             } else {
               setInsight(
                 <div className="space-y-2">
-                  <p className="font-semibold text-purple-900 dark:text-purple-100 border-b border-purple-100 dark:border-purple-800 pb-1">AI Detected Charges:</p>
+                  <p className="font-semibold text-purple-900 dark:text-purple-900 border-b border-purple-100 dark:border-purple-800 pb-1">AI Detected Charges:</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                     {data.chart.map((c: any, i: number) => (
                       <div key={i} className={`p-2 rounded-md text-xs border ${c.isLeak ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100' : 'bg-purple-50 dark:bg-purple-900/30 border-purple-100 dark:border-purple-800/50 text-purple-800 dark:text-purple-200'}`}>
@@ -449,12 +478,12 @@ export function Component() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
             <Bot size={20} className="text-purple-600" />
-            <h3 className="font-bold text-purple-900 dark:text-white">AI Insight</h3>
+            <h3 className="font-bold text-purple-900 dark:text-purple-900">AI Insight</h3>
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">Realtime · Private</div>
         </div>
 
-        <div className="min-h-[68px] text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
+        <div className="min-h-[68px] text-sm text-gray-900 dark:text-gray-900 leading-relaxed">
           {insight}
         </div>
 

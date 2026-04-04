@@ -25,7 +25,7 @@ app = FastAPI()
 # allows port 5173 connection to this API (port 8000).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], 
+    allow_origins=["http://localhost:5173", "http://localhost:4173"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -207,7 +207,7 @@ class AI_Generate_Spending_Summary(BaseModel):
 @app.post("/api/generate_spending_summary")
 async def generate_spending_summary(data: AI_Generate_Spending_Summary):
 
-    model = "llama3"
+    model = "hf.co/gaianet/FinGPT-MT-Llama-3-8B-LoRA-GGUF"
     prompt = f"""
 Categorize the spending history into the following labels:
 
@@ -274,7 +274,7 @@ class AI_Recurring_Changes(BaseModel):
 
 @app.post("/api/generate_recurring_charges")
 async def generate_spending_summary(data: AI_Recurring_Changes):
-    model = "llama3"
+    model = "hf.co/gaianet/FinGPT-MT-Llama-3-8B-LoRA-GGUF"
     prompt = f"""
 Use the transaction history and generate the charges that are recurring.
 

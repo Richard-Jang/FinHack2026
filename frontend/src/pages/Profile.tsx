@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, ShieldCheck, Lock, Moon, Sun } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+// import { Plus, ShieldCheck, Lock, Moon, Sun } from 'lucide-react';
+import { Plus, ShieldCheck, Lock } from 'lucide-react';
 import { usePlaidLink } from 'react-plaid-link';
 import { motion, type Variants } from 'framer-motion';
 import { useAuth } from '../AuthContext';
@@ -48,10 +49,10 @@ export function Component() {
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [loadingToken, setLoadingToken] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [_message, setMessage] = useState<string | null>(null);
   const [pendingOpen, setPendingOpen] = useState(false);
 
-  const onSuccess = useCallback(async (public_token: string, metadata: any) => {
+  const onSuccess = useCallback(async (public_token: string, _metadata: any) => {
     setConnecting(true);
     setMessage('Connecting bank...');
     try {
