@@ -152,8 +152,12 @@ async def ai_conversation(data: AI_Conversation_Request):
         final_conversation += (line + '\n')
     model = "llama3"
 
+    print(data.user_background)
+
     final_prompt = f"""
-You are currently a chatbot used for financial advice. On each one of your responses, give no more than 150 words. The shorter, the better. Below is the information of the person you are advising.
+You are currently a chatbot used for financial advice. On each one of your responses, give no more than 50 words. The shorter, the better. Below is the information of the person you are advising.
+Spending will be in the format $-amount
+Saving will be in the format $amount
 {str(data.user_background)}
 
 Here is the current conversation:
@@ -221,8 +225,9 @@ History:
 
 Following that, give some advice on how to cut down on costs.
 
-Give your response with the following format and nothing more. Add no additional text or keys to the response. The response should be a json object
-{{chart: {{ label: 'Housing' | 'Utilities' | 'Food' | 'Transportation' | 'Debt' | 'Insurance' | 'Medical', percentage: int }}, advice: {{ response: string }}}}
+Give your response EXACTLY in the following valid JSON format and nothing more. Make sure to use double quotes for all keys and string values.
+The keys can only be Housing, Utilities, Food, Transportation, Debt, Insurance, or Medical. If the percentage is less than 5%, do not return it.
+{{"chart": [{{"label": "Housing", "percentage": 15}}], "advice": {{"response": "string"}}}}
 """
     
     payload = {
@@ -230,6 +235,8 @@ Give your response with the following format and nothing more. Add no additional
         "prompt": prompt,
         "stream": False,
     }
+
+    print(data.history)
 
     try:
         response = requests.post(OLLAMA_BASE_URL, json=payload)
@@ -250,6 +257,64 @@ Give your response with the following format and nothing more. Add no additional
         return {"error": "Failed to connect to Ollama. Is it running on localhost:11434?"}
     except Exception as e:
         return {"error": str(e)}
+
+"""
+Request Schema:
+{
+    history: { name: string, date: string, amount: float }[],
+}
+
+Response Schema:
+{
+    charges: { name: string, amount: number, nextChargeDate: string, isLeak: boolean }[],
+}
+"""
+class AI_Recurring_Changes(BaseModel):
+    history: list = Field(default_factory=list)
+
+@app.post("/api/generate_recurring_charges")
+async def generate_spending_summary(data: AI_Recurring_Changes):
+    model = "llama3"
+    prompt = f"""
+Use the transaction history and generate the charges that are recurring.
+
+The transaction history will be given in the following format.
+{{ "history": [{{ "name": "string", "amount": 1.23 }}] }}
+
+History:
+{data.history}
+
+Give your response EXACTLY in the following valid JSON format and nothing more. Make sure to use double quotes for all keys and string values.
+{{"chart": [{{ "name": "string", "amount": 12.34, "nextChargeDate": "2026-04-10", "isLeak": false }}]}}
+"""
+    
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+    }
+
+    try:
+        response = requests.post(OLLAMA_BASE_URL, json=payload)
+        response.raise_for_status()
+
+        result = response.json()
+        parsed_response = result.get("response", "{}")
+        print(prompt)
+
+        parsed_json = json.loads(parsed_response)
+
+        chart = parsed_json.get("chart")
+
+        return {"chart": chart }
+    except requests.exceptions.ConnectionError:
+        return {"error": "Failed to connect to Ollama. Is it running on localhost:11434?"}
+    except Exception as e:
+        return {"error": str(e)}
+
+class AI_Transaction_Data(BaseModel):
+    history: int = Field(default=5)
+
 
 
 if __name__ == "__main__":

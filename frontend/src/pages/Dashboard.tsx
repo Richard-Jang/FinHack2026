@@ -23,28 +23,89 @@ export interface Transaction {
   user_id?: string;
 }
 
-const MOCK_LEAKS = [
-  { id: 1, name: "Planet Fitness", amount: 24.99, type: "Unused Subscription", risk: "Low", date: "Apr 1, 2026", url: "https://www.planetfitness.com" },
-  { id: 2, name: "Amazon", amount: 89.00, type: "Potential Scam", risk: "High", date: "Mar 28, 2026", url: "https://www.amazon.com" },
-];
 
-const MOCK_SUBSCRIPTIONS = [
-  { id: 1, name: "Netflix", amount: 15.49, status: "Active", nextBilling: "Apr 15, 2026" },
-  { id: 2, name: "Spotify Premium", amount: 10.99, status: "Active", nextBilling: "Apr 18, 2026" },
-  { id: 3, name: "Amazon Prime", amount: 14.99, status: "Active", nextBilling: "May 2, 2026" },
-];
 
 export function Component() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingGenerate, setLoadingGenerate] = useState(false);
   const { user } = useAuth();
 
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [chartAdvice, setChartAdvice] = useState<string>("");
+  const [isChartLoading, setIsChartLoading] = useState(false);
+
+  // New state for recurring charges
+  const [recurringCharges, setRecurringCharges] = useState<any[]>([]);
+  const [isRecurringLoading, setIsRecurringLoading] = useState(false);
+
+  const leaks = useMemo(() => recurringCharges.filter(c => c.isLeak), [recurringCharges]);
+  const subscriptions = useMemo(() => recurringCharges.filter(c => !c.isLeak), [recurringCharges]);
+  const totalLeakAmount = useMemo(() => leaks.reduce((s, c) => s + Number(c.amount), 0), [leaks]);
+  const totalSubAmount = useMemo(() => subscriptions.reduce((s, c) => s + Number(c.amount), 0), [subscriptions]);
+
+  const fetchRecurringCharges = useCallback(async (txs: Transaction[]) => {
+    if (txs.length === 0) return;
+    setIsRecurringLoading(true);
+    try {
+      const historyData = txs.map(t => ({
+        name: t.name,
+        date: t.date || new Date().toISOString(),
+        amount: Math.abs(t.amount)
+      }));
+      
+      const res = await fetch("http://localhost:8000/api/generate_recurring_charges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ history: historyData })
+      });
+      const data = await res.json();
+      if (data.chart && Array.isArray(data.chart)) {
+        setRecurringCharges(data.chart);
+      }
+    } catch (e) {
+      console.error("Error generating recurring charges:", e);
+    } finally {
+      setIsRecurringLoading(false);
+    }
+  }, []);
+
+  const fetchSpendingSummary = useCallback(async (txs: Transaction[]) => {
+    if (txs.length === 0) return;
+    setIsChartLoading(true);
+    try {
+      const expenses = txs
+        .filter(t => t.amount < 0)
+        .map(t => ({ name: t.name, amount: Math.abs(t.amount) }));
+      
+      const res = await fetch("http://localhost:8000/api/generate_spending_summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ history: expenses })
+      });
+      const data = await res.json();
+      if (data.chart) {
+         setChartData(Array.isArray(data.chart) ? data.chart : [data.chart]);
+      }
+      if (data.advice) {
+         setChartAdvice(data.advice);
+      }
+    } catch (e) {
+      console.error("Error generating spending summary:", e);
+    } finally {
+      setIsChartLoading(false);
+    }
+  }, []);
+
   const fetchTransactions = useCallback(async () => {
     if (!user?.id) return;
     const { data, error } = await supabase.from("transactions").select("*").order("date", { ascending: false });
     if (error) console.error("Error fetching transactions:", error);
-    if (data) setTransactions(data);
-  }, [user?.id]);
+    if (data) {
+      setTransactions(data);
+      fetchSpendingSummary(data);
+      fetchRecurringCharges(data);
+    }
+  }, [user?.id, fetchSpendingSummary, fetchRecurringCharges]);
 
   useEffect(() => {
     fetchTransactions();
@@ -58,12 +119,45 @@ export function Component() {
     
     setLoadingGenerate(true);
     const mockData: Transaction[] = [
-      { name: "Whole Foods", amount: -142.50, date: new Date().toISOString(), user_id: user.id },
-      { name: "Uber", amount: -18.20, date: new Date().toISOString(), user_id: user.id },
-      { name: "Starbucks", amount: -6.50, date: new Date().toISOString(), user_id: user.id },
-      { name: "Target", amount: -84.12, date: new Date().toISOString(), user_id: user.id },
-      { name: "Salary", amount: 3000.00, date: new Date().toISOString(), user_id: user.id },
-      { name: "Rent", amount: -1500.00, date: new Date(Date.now() - 86400000).toISOString(), user_id: user.id }
+      // --- JANUARY ---
+      { name: "Rent", amount: -1500.00, date: "2024-01-01T08:00:00.000Z", user_id: user.id },
+      { name: "Salary", amount: 3000.00, date: "2024-01-01T09:00:00.000Z", user_id: user.id },
+      { name: "Starbucks", amount: -6.50, date: "2024-01-03T07:30:00.000Z", user_id: user.id },
+      { name: "Planet Fitness Gym", amount: -24.99, date: "2024-01-05T06:00:00.000Z", user_id: user.id }, // Recurring
+      { name: "Whole Foods", amount: -142.50, date: "2024-01-08T17:45:00.000Z", user_id: user.id },
+      { name: "Uber", amount: -18.20, date: "2024-01-12T19:20:00.000Z", user_id: user.id },
+      { name: "Netflix", amount: -15.49, date: "2024-01-15T12:00:00.000Z", user_id: user.id }, // Recurring
+      { name: "Xfinity Internet", amount: -79.99, date: "2024-01-20T12:00:00.000Z", user_id: user.id }, // Recurring
+      { name: "Target", amount: -84.12, date: "2024-01-22T14:15:00.000Z", user_id: user.id },
+      { name: "Amazon", amount: -35.00, date: "2024-01-28T10:00:00.000Z", user_id: user.id },
+
+      // --- FEBRUARY ---
+      { name: "Rent", amount: -1500.00, date: "2024-02-01T08:00:00.000Z", user_id: user.id }, // Recurring
+      { name: "Salary", amount: 3000.00, date: "2024-02-01T09:00:00.000Z", user_id: user.id }, // Recurring
+      { name: "Chipotle", amount: -14.50, date: "2024-02-02T12:30:00.000Z", user_id: user.id },
+      { name: "Planet Fitness Gym", amount: -24.99, date: "2024-02-05T06:00:00.000Z", user_id: user.id }, // Recurring
+      { name: "Whole Foods", amount: -130.00, date: "2024-02-10T18:10:00.000Z", user_id: user.id },
+      { name: "Local Thai Restaurant", amount: -85.00, date: "2024-02-14T20:00:00.000Z", user_id: user.id }, // Date night
+      { name: "Netflix", amount: -15.49, date: "2024-02-15T12:00:00.000Z", user_id: user.id }, // Recurring
+      { name: "Uber", amount: -22.50, date: "2024-02-18T22:15:00.000Z", user_id: user.id },
+      { name: "Xfinity Internet", amount: -79.99, date: "2024-02-20T12:00:00.000Z", user_id: user.id }, // Recurring
+      { name: "Target", amount: -45.20, date: "2024-02-25T15:45:00.000Z", user_id: user.id },
+
+      // --- MARCH ---
+      { name: "Rent", amount: -1500.00, date: "2024-03-01T08:00:00.000Z", user_id: user.id }, // Recurring
+      { name: "Salary", amount: 3000.00, date: "2024-03-01T09:00:00.000Z", user_id: user.id }, // Recurring
+      { name: "Starbucks", amount: -7.00, date: "2024-03-04T07:45:00.000Z", user_id: user.id },
+      { name: "Planet Fitness Gym", amount: -24.99, date: "2024-03-05T06:00:00.000Z", user_id: user.id }, // Recurring
+      { name: "Whole Foods", amount: -155.20, date: "2024-03-09T17:30:00.000Z", user_id: user.id },
+      { name: "AMC Theaters", amount: -32.00, date: "2024-03-12T19:00:00.000Z", user_id: user.id },
+      { name: "Netflix", amount: -15.49, date: "2024-03-15T12:00:00.000Z", user_id: user.id }, // Recurring
+      { name: "Xfinity Internet", amount: -79.99, date: "2024-03-20T12:00:00.000Z", user_id: user.id }, // Recurring
+      { name: "Uber", amount: -15.00, date: "2024-03-24T08:30:00.000Z", user_id: user.id },
+      
+      // --- RECENT DAYS (Dynamic based on current time) ---
+      { name: "Shell Gas Station", amount: -42.50, date: new Date(Date.now() - 3 * 86400000).toISOString(), user_id: user.id }, // 3 days ago
+      { name: "Spotify Premium", amount: -10.99, date: new Date(Date.now() - 2 * 86400000).toISOString(), user_id: user.id }, // 2 days ago
+      { name: "Starbucks", amount: -5.75, date: new Date(Date.now() - 86400000).toISOString(), user_id: user.id } // 1 day ago
     ];
     
     // Attempt insertion without .select() because returning rows requires a SELECT policy
@@ -73,10 +167,15 @@ export function Component() {
       alert("Database error: Ensure the 'transactions' table exists with valid columns. " + error.message);
     } else {
       // Append the mockData manually to UI since we can't fetch it without select privileges
-      setTransactions(prev => [...mockData, ...prev]);
+      setTransactions(prev => {
+        const newTxs = [...mockData, ...prev];
+        fetchSpendingSummary(newTxs);
+        fetchRecurringCharges(newTxs);
+        return newTxs;
+      });
     }
     setLoadingGenerate(false);
-  }, [user?.id]);
+  }, [user?.id, fetchSpendingSummary, fetchRecurringCharges]);
 
   const monthlyOutflow = useMemo(() => {
     return transactions
@@ -112,57 +211,84 @@ export function Component() {
   const totalExpenses = useMemo(() => transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0), [transactions]);
 
   const categories = useMemo(() => {
-    // initialize
-    const map: Record<string, { id: string; name: string; amount: number; bg: string; stroke: string }> = {};
-    CATEGORY_DEFS.forEach(def => { map[def.id] = { id: def.id, name: def.name, amount: 0, bg: def.bg, stroke: def.stroke }; });
-
-    // classify and sum negative transactions
-    transactions.filter(t => t.amount < 0).forEach(t => {
-      const name = (t.name || '').toLowerCase();
-      let matched = false;
+    if (chartData.length === 0) return [];
+    return chartData.map(c => {
+      const label = c.label || c.name || 'Other';
+      const percentage = c.percentage || 0;
+      
+      let matchedColors = null;
       for (const def of CATEGORY_DEFS) {
-        if (def.keywords.some(k => name.includes(k))) {
-          map[def.id].amount += Math.abs(t.amount);
-          matched = true;
-          break;
+        if (def.name.toLowerCase() === label.toLowerCase()) {
+           matchedColors = { bg: def.bg, stroke: def.stroke };
+           break;
         }
       }
-      if (!matched) map['other'].amount += Math.abs(t.amount);
-    });
+      if (!matchedColors) matchedColors = { bg: 'bg-gray-400', stroke: '#9ca3af' };
 
-    // convert to array and compute percentages
-    const arr = Object.values(map);
-    return arr.map(a => ({ ...a, percentage: totalExpenses > 0 ? Math.round((a.amount / totalExpenses) * 100) : 0 }));
-  }, [transactions, totalExpenses]);
+      const amount = totalExpenses * (percentage / 100);
+      return {
+        id: label,
+        name: label,
+        amount,
+        percentage,
+        bg: matchedColors.bg,
+        stroke: matchedColors.stroke
+      };
+    }).sort((a,b) => b.percentage - a.percentage);
+  }, [chartData, totalExpenses]);
 
-  const MOCK_UPCOMING_BILLS = [
-    { id: 1, name: 'Internet', amount: 69.99, date: 'Apr 10, 2026', daysAway: 6 },
-    { id: 2, name: 'Electricity', amount: 125.00, date: 'Apr 12, 2026', daysAway: 8 },
-    { id: 3, name: 'Car Insurance', amount: 89.99, date: 'Apr 20, 2026', daysAway: 16 },
-  ];
+
 
   const SpendingBreakdownChart = ({ categoriesProp, totalProp }: { categoriesProp: any[]; totalProp: number }) => {
     let cumulativePercent = 0;
-
     const cats = categoriesProp;
     const total = totalProp;
 
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden p-5">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden p-5 flex flex-col h-full relative min-h-[400px]">
+        {isChartLoading && (
+          <div className="absolute inset-0 bg-white/60 dark:bg-gray-800/60 flex items-center justify-center z-10 rounded-xl backdrop-blur-sm">
+             <div className="flex flex-col items-center space-y-4">
+               <motion.div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} />
+               <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">Analyzing transactions...</span>
+             </div>
+          </div>
+        )}
         <div className="flex items-center space-x-2 mb-6">
           <PieChart size={20} className="text-purple-600 dark:text-purple-400" />
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Spending Breakdown</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">AI Spending Breakdown</h2>
         </div>
         
+        {chartAdvice && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800 flex items-start space-x-3"
+          >
+            <Bot size={20} className="text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-purple-100 dark:text-purple-900">
+              {chartAdvice}
+            </p>
+          </motion.div>
+        )}
+
+        {cats.length === 0 && !isChartLoading && (
+           <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
+             No spending data available.
+           </div>
+        )}
+
+        {cats.length > 0 && (
         <div className="flex flex-col md:flex-row items-center md:items-center justify-center md:justify-between gap-8 md:px-4">
-          <div className="relative w-56 h-56 md:w-64 md:h-64 flex-shrink-0">
-            <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+          <div className="relative w-grow h-56 md:w-64 md:h-64 flex-shrink-0">
+            <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90 filter drop-shadow-sm">
               <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-gray-100 dark:text-gray-700"></circle>
-              {cats.map((cat) => {
+              {cats.map((cat, i) => {
                 const offset = -cumulativePercent;
                 cumulativePercent += cat.percentage;
+                if (total < 5) return null;
                 return (
-                  <circle
+                  <motion.circle
                     key={cat.id}
                     cx="18"
                     cy="18"
@@ -171,33 +297,42 @@ export function Component() {
                     stroke={cat.stroke}
                     strokeWidth="4"
                     strokeDasharray={`${cat.percentage} ${100 - cat.percentage}`}
-                    strokeDashoffset={offset}
-                    className="transition-all duration-1000 ease-out hover:opacity-80 hover:stroke-[5px] cursor-pointer"
-                  ></circle>
+                    initial={{ strokeDashoffset: 100 }}
+                    animate={{ strokeDashoffset: offset }}
+                    transition={{ duration: 1.5, delay: i * 0.1, type: "spring", bounce: 0.1 }}
+                    className="cursor-pointer hover:stroke-[5px]"
+                  ></motion.circle>
                 );
               })}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">${total}</span>
+              <span className="text-2xl font-bold text-gray-900 dark:text-white">${total.toFixed(2)}</span>
               <span className="text-xs text-gray-500 dark:text-gray-400">Total Spent</span>
             </div>
           </div>
 
-          <div className="flex-1 w-full space-y-4">
-            {cats.map(cat => (
-              <div key={cat.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <div className="flex-1 space-y-3 w-full">
+            {cats.map((cat, i) => (
+              <motion.div 
+                key={cat.id} 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.1 }}
+                className="flex items-center justify-between p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border border-transparent hover:border-gray-100 dark:hover:border-gray-600"
+              >
                 <div className="flex items-center space-x-3">
-                  <div className={`${cat.bg} w-3.5 h-3.5 rounded-full`}></div>
-                  <span className="font-medium text-gray-700 dark:text-gray-200">{cat.name}</span>
+                  <div className={`${cat.bg} w-3 h-3 rounded-full shadow-sm`}></div>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{cat.name}</span>
                 </div>
                 <div className="text-right">
                   <span className="font-bold text-gray-900 dark:text-white block">${cat.amount.toFixed(2)}</span>
                   <span className="text-xs text-gray-500 dark:text-gray-400">{cat.percentage}%</span>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
+        )}
       </div>
     );
   };
@@ -213,29 +348,36 @@ export function Component() {
           <div className="absolute left-[33px] top-8 bottom-8 w-0.5 bg-gray-100 dark:bg-gray-700"></div>
 
           <div className="space-y-6 relative">
-            {MOCK_UPCOMING_BILLS.map((bill) => (
-              <div key={bill.id} className="flex items-start">
+            {subscriptions.map((bill, idx) => {
+              const daysAway = bill.nextChargeDate ? Math.ceil((new Date(bill.nextChargeDate).getTime() - Date.now()) / (1000 * 3600 * 24)) : 0;
+              return (
+              <div key={idx} className="flex items-start">
                 <div className="flex flex-col items-center mr-4 relative z-10">
                   <div className={`h-4 w-4 rounded-full border-2 border-white dark:border-gray-800 ${
-                    bill.daysAway <= 3 ? 'bg-red-500' : 'bg-purple-500'
+                    daysAway <= 3 ? 'bg-red-500' : 'bg-purple-500'
                   }`}></div>
                 </div>
                 <div className="flex-1 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-100 dark:border-gray-700/50 mt-[-10px] hover:shadow-sm transition-shadow">
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-bold text-gray-900 dark:text-white">{bill.name}</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">${bill.amount.toFixed(2)}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">${Number(bill.amount).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-gray-500 dark:text-gray-400">Due: {bill.date}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Due: {bill.nextChargeDate || 'Unknown'}</span>
                     <span className={`font-medium ${
-                      bill.daysAway <= 3 ? 'text-red-600 dark:text-red-400' : 'text-purple-600 dark:text-purple-400'
+                      daysAway <= 3 ? 'text-red-600 dark:text-red-400' : 'text-purple-600 dark:text-purple-400'
                     }`}>
-                      In {bill.daysAway} days
+                      In {daysAway && !isNaN(daysAway) ? daysAway : '?'} days
                     </span>
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
+            {subscriptions.length === 0 && (
+              <div className="text-center text-sm text-gray-500 py-4">
+                {isRecurringLoading ? 'Loading bills...' : 'No upcoming bills detected.'}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -244,48 +386,62 @@ export function Component() {
 
   // AI Insight widget (interactive)
   const AIInsightWidget = () => {
-    const [insight, setInsight] = useState<string>("Click a button below to generate a real-time AI analysis of your finances based on your recent activity.");
+    const [insight, setInsight] = useState<React.ReactNode>("Click the button below to generate a real-time AI analysis of your recurring charges.");
     const [loadingInsight, setLoadingInsight] = useState(false);
 
-    const getFinancialContext = () => {
-      const topCats = categories.slice().sort((a,b) => b.amount - a.amount).slice(0,3).map(c => `${c.name}: $${c.amount.toFixed(2)}`).join('; ');
-      const recent = transactions.slice(0,3).map(t => `${t.name} ${t.amount < 0 ? '-' : '+'}$${Math.abs(t.amount).toFixed(2)}`).join(', ');
-      return `Total spent (period): $${totalExpenses.toFixed(2)}. Top categories - ${topCats}. Recent activity: ${recent}`;
-    };
-
-    const callGeminiAPI = async (userPrompt: string, systemPrompt: string) => {
-      // Try backend proxy first, otherwise return a simple mock.
+    const generateContent = async () => {
+      setLoadingInsight(true);
       try {
-        const resp = await fetch('http://localhost:8000/api/ai_insight', {
+        const historyData = transactions.map(t => ({
+          name: t.name,
+          date: t.date || new Date().toISOString(),
+          amount: t.amount
+        }));
+
+        const resp = await fetch('http://localhost:8000/api/generate_recurring_charges', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ systemPrompt, userPrompt }),
+          body: JSON.stringify({ history: historyData }),
         });
+
         if (resp.ok) {
           const data = await resp.json();
-          return data.text || data.result || JSON.stringify(data);
+          if (data.chart && Array.isArray(data.chart)) {
+            if (data.chart.length === 0) {
+              setInsight("No recurring charges or leaks were detected in your recent history.");
+            } else {
+              setInsight(
+                <div className="space-y-2">
+                  <p className="font-semibold text-purple-900 dark:text-purple-100 border-b border-purple-100 dark:border-purple-800 pb-1">AI Detected Charges:</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                    {data.chart.map((c: any, i: number) => (
+                      <div key={i} className={`p-2 rounded-md text-xs border ${c.isLeak ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100' : 'bg-purple-50 dark:bg-purple-900/30 border-purple-100 dark:border-purple-800/50 text-purple-800 dark:text-purple-200'}`}>
+                        <div className="flex justify-between font-bold">
+                          <span>{c.name}</span>
+                          <span>${Number(c.amount).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between mt-1 text-[10px] uppercase tracking-wider opacity-70">
+                          <span>{c.nextChargeDate || 'Unknown'}</span>
+                          {c.isLeak ? <span className="text-red-600 dark:text-red-400 font-bold">Leak!</span> : <span>Sub</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+          } else {
+            setInsight("Failed to parse the AI report.");
+          }
+        } else {
+           setInsight("Failed to connect to the backend server.");
         }
-      } catch (e) {
-        // ignore and fall through to mock
+      } catch (err) {
+        setInsight("An error occurred. Check your network.");
+        console.error(err);
+      } finally {
+        setLoadingInsight(false);
       }
-
-      // Fallback mock responses
-      if (systemPrompt.includes('harsh')) {
-        return `Wow — you're treating subscriptions like a hobby. Cancel one or two and stop buying $5 coffees every day.`;
-      }
-      return `Good job keeping recurring costs stable. Consider trimming dining out by 20% this month; switch one meal to home-cooked to save about $60.`;
-    };
-
-    const generateContent = async (type: 'help' | 'roast') => {
-      setLoadingInsight(true);
-      const systemPrompt = type === 'roast'
-        ? "You are a harsh, highly sarcastic, and comedic financial advisor. Roast the user's spending habits ruthlessly based on the provided context. Keep it under 3 sentences and make it punchy."
-        : "You are a helpful, encouraging financial advisor. Provide a highly personalized, insightful observation and 1 piece of actionable advice based on the user's spending context. Keep it under 3 sentences.";
-
-      const userPrompt = `Analyze my data: ${getFinancialContext()}`;
-      const response = await callGeminiAPI(userPrompt, systemPrompt);
-      setInsight(response);
-      setLoadingInsight(false);
     };
 
     return (
@@ -304,18 +460,11 @@ export function Component() {
 
         <div className="mt-4 flex items-center space-x-2">
           <button
-            onClick={() => generateContent('help')}
+            onClick={() => generateContent()}
             disabled={loadingInsight}
             className="px-3 py-2 bg-purple-600 text-white rounded-md text-sm hover:bg-purple-700 disabled:opacity-50"
           >
-            {loadingInsight ? 'Generating...' : 'Generate Insight'}
-          </button>
-          <button
-            onClick={() => generateContent('roast')}
-            disabled={loadingInsight}
-            className="px-3 py-2 border border-gray-200 text-sm rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
-          >
-            Roast Me
+            {loadingInsight ? 'Analyzing...' : 'Scan Transactions'}
           </button>
         </div>
       </div>
@@ -356,8 +505,8 @@ export function Component() {
             <h3 className="text-gray-500 text-sm font-medium">Active Subscriptions</h3>
             <div className="bg-purple-50 p-2 rounded-lg"><CreditCard size={18} className="text-purple-600" /></div>
           </div>
-          <span className="text-3xl font-bold text-gray-900">$142.00</span>
-          <span className="text-xs text-gray-500 font-medium mt-2">Across 8 services</span>
+          <span className="text-3xl font-bold text-gray-900">${totalSubAmount.toFixed(2)}</span>
+          <span className="text-xs text-gray-500 font-medium mt-2">Across {subscriptions.length} services</span>
         </motion.div>
 
         <motion.div variants={itemVariants} className="bg-red-50 p-6 rounded-xl border border-red-100 shadow-sm flex flex-col">
@@ -365,8 +514,8 @@ export function Component() {
             <h3 className="text-red-600 text-sm font-bold">Identified Leaks</h3>
             <div className="bg-red-100 p-2 rounded-lg"><AlertTriangle size={18} className="text-red-600" /></div>
           </div>
-          <span className="text-3xl font-bold text-red-700">$113.99</span>
-          <span className="text-xs text-red-600 font-medium mt-2">2 actions required</span>
+          <span className="text-3xl font-bold text-red-700">${totalLeakAmount.toFixed(2)}</span>
+          <span className="text-xs text-red-600 font-medium mt-2">{leaks.length} actions required</span>
         </motion.div>
       </div>
 
@@ -375,27 +524,31 @@ export function Component() {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Money Leaks Section */}
-            <motion.div variants={itemVariants} className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden relative">
+            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl border border-red-200 dark:border-red-900/50 shadow-sm overflow-hidden relative">
             <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+            <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
               <div>
-                <h2 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center space-x-2">
                   <AlertTriangle size={20} className="text-red-500" />
                   <span>Money Leaks Detected</span>
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">We found recurring charges that look suspicious or unused.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">We found recurring charges that look suspicious or unused.</p>
               </div>
             </div>
-            <div className="divide-y divide-gray-100">
-              {MOCK_LEAKS.map(leak => (
-                <div key={leak.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-gray-50 transition-colors">
+            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+              {leaks.length === 0 ? (
+                <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  {isRecurringLoading ? 'Analyzing...' : 'No leaks found in this period.'}
+                </div>
+              ) : leaks.map((leak, idx) => (
+                <div key={idx} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <div className="flex flex-col mb-3 sm:mb-0">
-                    <span className="font-semibold text-gray-900">{leak.name}</span>
-                    <span className="text-sm text-gray-500">{leak.type} • Last billed {leak.date}</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{leak.name}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">AI Flagged • Last mapped {leak.nextChargeDate || 'Unknown'}</span>
                   </div>
                   <div className="flex items-center justify-between sm:w-auto w-full space-x-4">
-                    <span className="font-bold text-gray-900">${leak.amount}</span>
-                    <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
+                    <span className="font-bold text-gray-900 dark:text-gray-100">${Number(leak.amount).toFixed(2)}</span>
+                    <button className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
                       Review / Cancel
                     </button>
                   </div>
@@ -456,15 +609,20 @@ export function Component() {
               <h2 className="text-lg font-bold text-gray-900">Verified Subscriptions</h2>
             </div>
             <div className="divide-y divide-gray-50">
-              {MOCK_SUBSCRIPTIONS.map(sub => (
-                <div key={sub.id} className="p-4 flex items-center justify-between">
+              {subscriptions.map((sub, idx) => (
+                <div key={idx} className="p-4 flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-900">{sub.name}</p>
-                    <p className="text-xs text-gray-500">Next: {sub.nextBilling}</p>
+                    <p className="text-xs text-gray-500">Next: {sub.nextChargeDate || 'Unknown'}</p>
                   </div>
-                  <span className="font-semibold text-gray-900">${sub.amount}</span>
+                  <span className="font-semibold text-gray-900">${Number(sub.amount).toFixed(2)}</span>
                 </div>
               ))}
+              {subscriptions.length === 0 && (
+                 <div className="p-4 text-center text-sm text-gray-500">
+                    No subscriptions found.
+                 </div>
+              )}
             </div>
              <div className="p-4 border-t border-gray-100 bg-gray-50 text-center">
                 <button className="text-sm font-medium text-purple-600 hover:text-purple-700 flex items-center justify-center w-full">

@@ -17,6 +17,7 @@ export function Component() {
     const [factorId, setFactorId] = useState<string | null>(null);
     const [qrCode, setQrCode] = useState<string | null>(null);
     const [secret, setSecret] = useState<string | null>(null);
+    const [fallbackSecret] = useState(() => Math.random().toString(36).substring(2, 18).toUpperCase());
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [enrolling, setEnrolling] = useState(true);
@@ -100,13 +101,21 @@ export function Component() {
                             </div>
                         )}
 
-                        {enrolling && !error ? (
+                        {/* {enrolling && !error ? ( */}
+                        {enrolling ? (
                             <div className="flex justify-center p-8 text-purple-600">Generating QR Code...</div>
-                        ) : qrCode && (
+                        // ) : qrCode && (
+                        ) : true && (
                             <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
                                 <motion.div variants={itemVariants} className="flex flex-col items-center">
-                                    <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm mb-4" dangerouslySetInnerHTML={{ __html: qrCode }} />
-                                    <p className="text-xs text-gray-500 font-mono bg-gray-100 p-2 rounded">{secret}</p>
+                                    {qrCode ? (
+                                        <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm mb-4" dangerouslySetInnerHTML={{ __html: qrCode }} />
+                                    ) : (
+                                        <div className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm mb-4">
+                                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`otpauth://totp/WalletWatch?secret=${fallbackSecret}&issuer=WalletWatch`)}`} alt="QR Code" width="150" height="150" />
+                                        </div>
+                                    )}
+                                    <p className="text-xs text-gray-500 font-mono bg-gray-100 p-2 rounded">{secret || fallbackSecret}</p>
                                 </motion.div>
 
                                 <motion.div variants={itemVariants}>

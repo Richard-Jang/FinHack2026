@@ -10,7 +10,7 @@ const AIAssistant = () => {
   const [messages, setMessages] = useState([
     {
       sender: 'ai',
-      text: `Hi! How may I assist you today?`
+      text: `Hi! What financial advice can I provide?`
     }
   ]);
   const [input, setInput] = useState('');
@@ -76,7 +76,7 @@ const AIAssistant = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="bg-white rounded-2xl shadow-2xl w-80 md:w-96 mb-4 overflow-hidden border border-gray-100 flex flex-col h-[450px] transition-all origin-bottom-right"
+            className={`${messages.length >= 2 ? "h-auto" : ""} bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-80 md:w-96 mb-4 overflow-hidden border border-gray-100 dark:border-gray-700 flex flex-col h-[450px] transition-all origin-bottom-right`}
           >
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 to-fuchsia-700 p-4 flex justify-between items-center text-white">
@@ -96,7 +96,7 @@ const AIAssistant = () => {
           </div>
           
           {/* Messages */}
-          <div className="flex-1 p-4 overflow-y-auto bg-gray-50 space-y-4">
+          <div className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-gray-900 space-y-4">
             <AnimatePresence initial={false}>
               {messages.map((msg, idx) => (
                 <motion.div 
@@ -108,7 +108,7 @@ const AIAssistant = () => {
                   <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
                     msg.sender === 'user' 
                       ? 'bg-purple-600 text-white rounded-br-none' 
-                      : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none shadow-sm'
+                      : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-none shadow-sm'
                   }`}>
                     {msg.text}
                   </div>
@@ -122,7 +122,7 @@ const AIAssistant = () => {
                   exit={{ opacity: 0, scale: 0.9 }}
                   className="flex justify-start"
                 >
-                  <div className="bg-white border border-gray-200 text-gray-800 rounded-bl-none shadow-sm rounded-2xl p-3 w-16 h-10 flex items-center justify-center space-x-1 border">
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-none shadow-sm rounded-2xl p-3 w-16 h-10 flex items-center justify-center space-x-1">
                     <motion.div className="w-1.5 h-1.5 bg-gray-400 rounded-full" animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0 }} />
                     <motion.div className="w-1.5 h-1.5 bg-gray-400 rounded-full" animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }} />
                     <motion.div className="w-1.5 h-1.5 bg-gray-400 rounded-full" animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }} />

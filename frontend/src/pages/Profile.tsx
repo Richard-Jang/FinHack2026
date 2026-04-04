@@ -2,10 +2,15 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, ShieldCheck, Lock, Moon, Sun } from 'lucide-react';
 import { usePlaidLink } from 'react-plaid-link';
 import { motion, type Variants } from 'framer-motion';
+import { useAuth } from '../AuthContext';
 
-const MOCK_USER = { name: "Alex Johnson", email: "alex@example.com" };
 
 export function Component() {
+
+  const { user } = useAuth();
+
+  const MOCK_USER = { name: "Hello!", email: user?.email };
+
   const [isDark, setIsDark] = useState<boolean>(() => {
     try {
       const val = localStorage.getItem('theme');
@@ -105,7 +110,7 @@ export function Component() {
       
       <motion.div variants={itemVariants} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex items-center space-x-6">
         <div className="h-20 w-20 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-2xl font-bold">
-          AJ
+          {MOCK_USER.email ? MOCK_USER.email[0].toUpperCase() + MOCK_USER.email[1].toUpperCase() : "AB"}
         </div>
         <div>
           <h2 className="text-xl font-bold text-gray-900">{MOCK_USER.name}</h2>
@@ -162,7 +167,7 @@ export function Component() {
               </div>
               <div>
                 <p className="font-bold text-gray-900">Password & Authentication</p>
-                <p className="text-sm text-gray-500">Secured via Duo 2FA / Authenticator</p>
+                <p className="text-sm text-gray-500">Secured with Multi-Factor Authentication</p>
               </div>
             </div>
             <button className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
