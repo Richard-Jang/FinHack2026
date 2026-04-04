@@ -242,6 +242,86 @@ export function Component() {
     );
   };
 
+  // AI Insight widget (interactive)
+  const AIInsightWidget = () => {
+    const [insight, setInsight] = useState<string>("Click a button below to generate a real-time AI analysis of your finances based on your recent activity.");
+    const [loadingInsight, setLoadingInsight] = useState(false);
+
+    const getFinancialContext = () => {
+      const topCats = categories.slice().sort((a,b) => b.amount - a.amount).slice(0,3).map(c => `${c.name}: $${c.amount.toFixed(2)}`).join('; ');
+      const recent = transactions.slice(0,3).map(t => `${t.name} ${t.amount < 0 ? '-' : '+'}$${Math.abs(t.amount).toFixed(2)}`).join(', ');
+      return `Total spent (period): $${totalExpenses.toFixed(2)}. Top categories - ${topCats}. Recent activity: ${recent}`;
+    };
+
+    const callGeminiAPI = async (userPrompt: string, systemPrompt: string) => {
+      // Try backend proxy first, otherwise return a simple mock.
+      try {
+        const resp = await fetch('http://localhost:8000/api/ai_insight', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ systemPrompt, userPrompt }),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          return data.text || data.result || JSON.stringify(data);
+        }
+      } catch (e) {
+        // ignore and fall through to mock
+      }
+
+      // Fallback mock responses
+      if (systemPrompt.includes('harsh')) {
+        return `Wow — you're treating subscriptions like a hobby. Cancel one or two and stop buying $5 coffees every day.`;
+      }
+      return `Good job keeping recurring costs stable. Consider trimming dining out by 20% this month; switch one meal to home-cooked to save about $60.`;
+    };
+
+    const generateContent = async (type: 'help' | 'roast') => {
+      setLoadingInsight(true);
+      const systemPrompt = type === 'roast'
+        ? "You are a harsh, highly sarcastic, and comedic financial advisor. Roast the user's spending habits ruthlessly based on the provided context. Keep it under 3 sentences and make it punchy."
+        : "You are a helpful, encouraging financial advisor. Provide a highly personalized, insightful observation and 1 piece of actionable advice based on the user's spending context. Keep it under 3 sentences.";
+
+      const userPrompt = `Analyze my data: ${getFinancialContext()}`;
+      const response = await callGeminiAPI(userPrompt, systemPrompt);
+      setInsight(response);
+      setLoadingInsight(false);
+    };
+
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-2">
+            <Bot size={20} className="text-purple-600" />
+            <h3 className="font-bold text-purple-900 dark:text-white">AI Insight</h3>
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Realtime · Private</div>
+        </div>
+
+        <div className="min-h-[68px] text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
+          {insight}
+        </div>
+
+        <div className="mt-4 flex items-center space-x-2">
+          <button
+            onClick={() => generateContent('help')}
+            disabled={loadingInsight}
+            className="px-3 py-2 bg-purple-600 text-white rounded-md text-sm hover:bg-purple-700 disabled:opacity-50"
+          >
+            {loadingInsight ? 'Generating...' : 'Generate Insight'}
+          </button>
+          <button
+            onClick={() => generateContent('roast')}
+            disabled={loadingInsight}
+            className="px-3 py-2 border border-gray-200 text-sm rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+          >
+            Roast Me
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <motion.div className="space-y-6" variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} className="flex justify-between items-end">
@@ -394,14 +474,8 @@ export function Component() {
           </motion.div>
 
           {/* Quick AI Advice Widget */}
-          <motion.div variants={itemVariants} className="bg-gradient-to-br from-fuchsia-50 to-purple-50 rounded-xl border border-purple-100 p-5 shadow-sm">
-            <div className="flex items-center space-x-2 mb-3">
-              <Bot size={20} className="text-purple-600" />
-              <h3 className="font-bold text-purple-900">AI Weekly Insight</h3>
-            </div>
-            <p className="text-sm text-purple-800 leading-relaxed">
-              You are on track to spend <strong>15% less</strong> on online shopping this month! Keep it up. However, your dining out budget is getting tight.
-            </p>
+          <motion.div variants={itemVariants}>
+            <AIInsightWidget />
           </motion.div>
 
         </div>
