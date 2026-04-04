@@ -12,11 +12,11 @@
 }
 
 .dark {
-	--bg: #071022;
-	--text: #e6eef8;
-	--muted: #9aa4af;
-	--card-bg: #0b1220;
-	--border: #172131;
+	--bg: #071425;
+	--text: #cfe7f7; /* slightly dimmer than pure white */
+	--muted: #94a3b8;
+	--card-bg: #0b1620; /* very dark but not pure black */
+	--border: #12202a;
 }
 
 body {
@@ -60,4 +60,32 @@ body {
 	box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 	transition: transform 180ms cubic-bezier(.4,0,.2,1);
 }
+
+/* Dark-mode tweaks for commonly used utilities to reduce contrast */
+.dark .bg-gray-50 { background-color: rgba(255,255,255,0.02) !important; }
+.dark .bg-white { background-color: var(--card-bg) !important; }
+.dark .text-gray-900 { color: var(--text) !important; }
+.dark .text-gray-500 { color: var(--muted) !important; }
+.dark .border-gray-100 { border-color: var(--border) !important; }
+.dark .hover\:bg-gray-50:hover { background-color: rgba(255,255,255,0.02) !important; }
+
+/* Purple / accent in dark mode should be softer */
+.dark .bg-purple-50 { background-color: rgba(124,58,237,0.06) !important; }
+.dark .bg-purple-100 { background-color: rgba(124,58,237,0.04) !important; }
+.dark .text-purple-600 { color: #b9a0ff !important; }
+
+/* Green status colors (connected banks) */
+.dark .bg-green-50 { background-color: rgba(16,185,129,0.04) !important; }
+.dark .border-green-200 { border-color: rgba(34,197,94,0.12) !important; }
+.dark .text-green-600 { color: #9ee7c9 !important; }
+.dark .text-green-700 { color: #6ee7b1 !important; }
+.dark .bg-green-100 { background-color: rgba(16,185,129,0.06) !important; }
+
+/* soften the switch appearance in dark mode */
+.dark .switch-track { background-color: rgba(255,255,255,0.08); }
+.dark .switch-thumb { background: #dbeaf6; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
+/* reduce strong shadows on cards in dark mode */
+.dark .shadow-sm { box-shadow: 0 1px 2px rgba(3,7,18,0.6) !important; }
+
 

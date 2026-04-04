@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, ShieldCheck, Lock, Moon, Sun } from 'lucide-react';
+import { usePlaidLink } from 'react-plaid-link';
 import { motion, type Variants } from 'framer-motion';
 
 const MOCK_USER = { name: "Alex Johnson", email: "alex@example.com" };
@@ -38,6 +39,66 @@ export function Component() {
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 100 } }
   };
 
+  // Plaid Link state
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [loadingToken, setLoadingToken] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [pendingOpen, setPendingOpen] = useState(false);
+
+  const onSuccess = useCallback(async (public_token: string, metadata: any) => {
+    setConnecting(true);
+    setMessage('Connecting bank...');
+    try {
+      const resp = await fetch('http://localhost:8000/api/exchange_public_token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public_token }),
+      });
+      const data = await resp.json();
+      if (data.error) {
+        setMessage('Error connecting bank: ' + data.error);
+      } else {
+        setMessage('Bank connected successfully');
+      }
+    } catch (e: any) {
+      setMessage('Network error while connecting bank');
+    } finally {
+      setConnecting(false);
+    }
+  }, []);
+
+  const { open, ready } = usePlaidLink({ token: linkToken as any, onSuccess });
+
+  useEffect(() => {
+    if (pendingOpen && ready) {
+      open();
+      setPendingOpen(false);
+    }
+  }, [pendingOpen, ready, open]);
+
+  const handleAddBank = async () => {
+    setMessage(null);
+    if (!linkToken) {
+      setLoadingToken(true);
+      try {
+        const resp = await fetch('http://localhost:8000/api/create_link_token', { method: 'POST' });
+        const data = await resp.json();
+        const token = data.link_token || data?.data?.link_token || null;
+        setLinkToken(token);
+        // request Plaid to open once ready
+        setPendingOpen(true);
+      } catch (e) {
+        setMessage('Failed to get link token');
+      } finally {
+        setLoadingToken(false);
+      }
+    } else {
+      if (ready) open();
+      else setPendingOpen(true);
+    }
+  };
+
   return (
     <motion.div className="max-w-3xl mx-auto space-y-6" variants={containerVariants} initial="hidden" animate="visible">
       <motion.h1 variants={itemVariants} className="text-2xl font-bold text-gray-900 mb-6">Profile & Settings</motion.h1>
@@ -55,8 +116,12 @@ export function Component() {
       <motion.div variants={itemVariants} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex justify-between items-center">
           <h2 className="text-lg font-bold text-gray-900">Connected Institutions</h2>
-          <button className="text-sm flex items-center space-x-1 text-purple-600 font-medium hover:bg-purple-50 px-3 py-1.5 rounded-lg transition-colors">
-            <Plus size={16} /> <span>Add Bank</span>
+          <button
+            onClick={handleAddBank}
+            disabled={loadingToken || connecting}
+            className="text-sm flex items-center space-x-1 text-purple-600 font-medium hover:bg-purple-50 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <Plus size={16} /> <span>{loadingToken ? 'Loading...' : connecting ? 'Connecting...' : 'Add Bank'}</span>
           </button>
         </div>
         <div className="p-5 space-y-4">
@@ -104,7 +169,6 @@ export function Component() {
               Change Password
             </button>
           </div>
-          
         </div>
       </motion.div>
       {/* Animated switch placed at bottom of profile page */}
