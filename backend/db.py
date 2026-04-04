@@ -21,12 +21,12 @@ class FinanceProcessor:
     def __init__(self, transactions):
         self.transactions = transactions
 
-    def get_recent_transactions(self, limit=4):
+    def get_recent_transactions(self, limit=20):
         """Returns the most recent transactions for the main list."""
         # Sort by date descending
         sorted_tx = sorted(self.transactions, key=lambda x: x.get('date', ''), reverse=True)
         return sorted_tx[:limit]
-
+   
     def identify_leaks(self):
         """
         Logic to find 'Leaks'. 
@@ -82,6 +82,15 @@ class FinanceProcessor:
             "leak_total": total_leak_amount
         }
 
+    def get_frequent_merchants(self, limit=20):
+        """Returns merchants sorted by transaction frequency in recent transactions."""
+        recent_tx = self.get_recent_transactions(limit)
+        from collections import Counter
+        merchant_counts = Counter(tx.get('name', '') for tx in recent_tx)
+        # Sort by frequency descending, then by name ascending for ties
+        sorted_merchants = sorted(merchant_counts.items(), key=lambda x: (-x[1], x[0]))
+        return sorted_merchants
+
 # --- 3. THE MAIN TERMINAL OUTPUT ---
 def main():
     print(" Connecting to Finance API...")
@@ -89,8 +98,11 @@ def main():
     # Mocking the call - replace with your actual URL and Token
     # raw_data = fetch_raw_transactions("https://api.bank.com/v1/txns", "TOKEN")
     
-    # Dummy data to demonstrate terminal output matching your React Mock
+    # Dummy data to demonstrate terminal output matching  React Mock
     mock_raw_data = [
+        {"name": "Whole Foods", "amount": 142.50, "category": "Groceries", "date": "2026-04-02"},
+        {"name": "Whole Foods", "amount": 142.50, "category": "Groceries", "date": "2026-04-02"},
+        {"name": "Whole Foods", "amount": 142.50, "category": "Groceries", "date": "2026-04-02"},
         {"name": "Whole Foods", "amount": 142.50, "category": "Groceries", "date": "2026-04-02"},
         {"name": "UNKNOWN*WEB-SVC", "amount": 89.00, "category": "Service", "date": "2026-03-28"},
         {"name": "Netflix", "amount": 15.49, "category": "Entertainment", "date": "2026-03-15"},
@@ -113,6 +125,12 @@ def main():
     for l in leaks:
         print(f"  - {l['name']} (${l['amount']}) | Risk: {l['risk']}")
 
+    print("\n FREQUENT TRANSACTIONS:")
+    frequent_merchants = processor.get_frequent_merchants()
+    for i, (merchant, count) in enumerate(frequent_merchants, 1):
+        print(f"  {i}. {merchant} ({count} transactions)")
+    
+
     print("\n RECENT TRANSACTIONS:")
     for tx in processor.get_recent_transactions():
         print(f"  {tx['date']} | {tx['name'][:15]:<15} | ${tx['amount']:.2f}")
@@ -120,3 +138,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
