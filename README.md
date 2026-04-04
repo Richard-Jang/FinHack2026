@@ -15,3 +15,4 @@ How it works:
 - Backend analyzes patterns in transaction names, amounts and dates (frequency).
 - Recurring payments are identified and stored.
 - Alerts are generated for users to review in the dashboard.
+- AI feature generates actionable insights to guide users through personal financial management. 
