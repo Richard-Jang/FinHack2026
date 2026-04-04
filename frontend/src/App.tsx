@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
+import { BrowserRouter, createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { RootRoute } from './Route';
 
 const App = () => {
   const [linkToken, setLinkToken] = useState<string | null>(null);
@@ -30,17 +32,21 @@ const App = () => {
 
   const { open, ready } = usePlaidLink(config);
 
+  const router = createBrowserRouter([RootRoute], {});
+    
+
   return (
-    <div style={{ textAlign: 'center', marginTop: '50px' }}>
-      <h1>WalletWatch</h1>
-      <button 
-        onClick={() => open()} 
-        disabled={!ready}
-        style={{ padding: '10px 20px', fontSize: '16px', cursor: 'pointer' }}
-      >
-        Connect a Bank Account
-      </button>
-    </div>
+    // <div style={{ textAlign: 'center', marginTop: '50px' }}>
+    //   <h1>WalletWatch</h1>
+    //   <button 
+    //     onClick={() => open()} 
+    //     disabled={!ready}
+    //     style={{ padding: '10px 20px', fontSize: '16px', cursor: 'pointer' }}
+    //   >
+    //     Connect a Bank Account
+    //   </button>
+    // </div>
+    <RouterProvider router={router} />
   );
 };
 

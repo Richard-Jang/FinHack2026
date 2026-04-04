@@ -1,13 +1,23 @@
 import { Plus, ShieldCheck, Lock } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const MOCK_USER = { name: "Alex Johnson", email: "alex@example.com" };
 
 export function Component() {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 100 } }
+  };
+
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Profile & Settings</h1>
+    <motion.div className="max-w-3xl mx-auto space-y-6" variants={containerVariants} initial="hidden" animate="visible">
+      <motion.h1 variants={itemVariants} className="text-2xl font-bold text-gray-900 mb-6">Profile & Settings</motion.h1>
       
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex items-center space-x-6">
+      <motion.div variants={itemVariants} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex items-center space-x-6">
         <div className="h-20 w-20 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-2xl font-bold">
           AJ
         </div>
@@ -15,9 +25,9 @@ export function Component() {
           <h2 className="text-xl font-bold text-gray-900">{MOCK_USER.name}</h2>
           <p className="text-gray-500">{MOCK_USER.email}</p>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <motion.div variants={itemVariants} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex justify-between items-center">
           <h2 className="text-lg font-bold text-gray-900">Connected Institutions</h2>
           <button className="text-sm flex items-center space-x-1 text-purple-600 font-medium hover:bg-purple-50 px-3 py-1.5 rounded-lg transition-colors">
@@ -46,10 +56,10 @@ export function Component() {
             <span className="text-sm font-medium text-green-700 bg-green-100 px-3 py-1 rounded-full">Connected</span>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* NEW SECTION: Security & Preferences */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <motion.div variants={itemVariants} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900">Security & Preferences</h2>
         </div>
@@ -71,7 +81,7 @@ export function Component() {
           </div>
           
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
