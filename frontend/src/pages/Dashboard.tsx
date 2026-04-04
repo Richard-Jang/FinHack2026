@@ -155,7 +155,7 @@ export function Component() {
         </div>
         
         <div className="flex flex-col md:flex-row items-center md:items-center justify-center md:justify-between gap-8 md:px-4">
-          <div className="relative w-48 h-48 flex-shrink-0">
+          <div className="relative w-56 h-56 md:w-64 md:h-64 flex-shrink-0">
             <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
               <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="currentColor" strokeWidth="4" className="text-gray-100 dark:text-gray-700"></circle>
               {cats.map((cat) => {
@@ -295,7 +295,7 @@ export function Component() {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Money Leaks Section */}
-          <motion.div variants={itemVariants} className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden relative">
+            <motion.div variants={itemVariants} className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden relative">
             <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
             <div className="p-5 border-b border-gray-100 flex justify-between items-center">
               <div>
@@ -322,6 +322,11 @@ export function Component() {
                 </div>
               ))}
             </div>
+          </motion.div>
+
+          {/* Spending breakdown - moved into left column for more space */}
+          <motion.div variants={itemVariants} className="">
+            <SpendingBreakdownChart categoriesProp={categories} totalProp={totalExpenses} />
           </motion.div>
 
           {/* Recent Transactions */}
@@ -362,14 +367,6 @@ export function Component() {
         <div className="space-y-6">
           
           {/* Subscriptions */}
-            <motion.div variants={itemVariants} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-              {/* Spending breakdown chart inserted above subscriptions area */}
-            </motion.div>
-
-            <motion.div variants={itemVariants}>
-              <SpendingBreakdownChart categoriesProp={categories} totalProp={totalExpenses} />
-            </motion.div>
-
             <motion.div variants={itemVariants}>
               <UpcomingBillsTimeline />
             </motion.div>
