@@ -293,12 +293,12 @@ export function Component() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
             <Bot size={20} className="text-purple-600" />
-            <h3 className="font-bold text-purple-900 dark:text-white">AI Insight</h3>
+            <h3 className="font-bold text-purple-900 dark:text-purple-200">AI Insight</h3>
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">Realtime · Private</div>
         </div>
 
-        <div className="min-h-[68px] text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
+        <div className="min-h-[68px] text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
           {insight}
         </div>
 
