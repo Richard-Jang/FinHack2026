@@ -1,150 +1,77 @@
-import { motion, type Variants } from "framer-motion";
+import { Plus, ShieldCheck, Lock } from 'lucide-react';
+
+const MOCK_USER = { name: "Alex Johnson", email: "alex@example.com" };
 
 export function Component() {
-    const listVariants: Variants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                when: "beforeChildren",
-                staggerChildren: 0.1
-            }
-        }
-    };
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Profile & Settings</h1>
+      
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex items-center space-x-6">
+        <div className="h-20 w-20 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-2xl font-bold">
+          AJ
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">{MOCK_USER.name}</h2>
+          <p className="text-gray-500">{MOCK_USER.email}</p>
+        </div>
+      </div>
 
-    const itemVariants: Variants = {
-        hidden: { y: 20, opacity: 0 },
-        visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
-    };
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+          <h2 className="text-lg font-bold text-gray-900">Connected Institutions</h2>
+          <button className="text-sm flex items-center space-x-1 text-purple-600 font-medium hover:bg-purple-50 px-3 py-1.5 rounded-lg transition-colors">
+            <Plus size={16} /> <span>Add Bank</span>
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="flex items-center justify-between border border-green-200 bg-green-50 rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <ShieldCheck size={24} className="text-green-600" />
+              <div>
+                <p className="font-bold text-gray-900">Chase Bank</p>
+                <p className="text-xs text-green-700">Checking •••• 4452</p>
+              </div>
+            </div>
+            <span className="text-sm font-medium text-green-700 bg-green-100 px-3 py-1 rounded-full">Connected</span>
+          </div>
+          <div className="flex items-center justify-between border border-green-200 bg-green-50 rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <ShieldCheck size={24} className="text-green-600" />
+              <div>
+                <p className="font-bold text-gray-900">American Express</p>
+                <p className="text-xs text-green-700">Credit Card •••• 1004</p>
+              </div>
+            </div>
+            <span className="text-sm font-medium text-green-700 bg-green-100 px-3 py-1 rounded-full">Connected</span>
+          </div>
+        </div>
+      </div>
 
-    return (
-        <motion.div 
-            className="py-6 w-full max-w-4xl mx-auto"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-        >
-            <motion.div 
-                className="px-4 sm:px-6 lg:px-8 mb-8"
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.4 }}
-            >
-                <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
-                <p className="mt-2 text-sm text-gray-600">Update your account information and preferences.</p>
-            </motion.div>
-
-            <motion.div 
-                className="px-4 sm:px-6 lg:px-8"
-                variants={listVariants}
-                initial="hidden"
-                animate="visible"
-            >
-                <div className="bg-white shadow rounded-lg border border-purple-100 overflow-hidden">
-                    {/* Header */}
-                    <div className="px-4 py-5 bg-purple-50 sm:px-6 border-b border-purple-100 flex items-center gap-4 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-purple-600" />
-                        
-                        <motion.div 
-                            className="h-16 w-16 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 font-bold text-xl border-2 border-purple-300"
-                            whileHover={{ scale: 1.1, rotate: 5 }}
-                        >
-                            JD
-                        </motion.div>
-                        <div>
-                            <h3 className="text-lg leading-6 font-medium text-gray-900">John Doe</h3>
-                            <p className="mt-1 max-w-2xl text-sm text-gray-500">john.doe@example.com</p>
-                        </div>
-                    </div>
-
-                    {/* Form Details */}
-                    <div className="px-4 py-5 sm:p-6">
-                        <form className="space-y-6">
-                            <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                                <motion.div variants={itemVariants} className="sm:col-span-3">
-                                    <label htmlFor="first-name" className="block text-sm font-medium text-gray-700">
-                                        First name
-                                    </label>
-                                    <div className="mt-1">
-                                        <input
-                                            type="text"
-                                            name="first-name"
-                                            id="first-name"
-                                            defaultValue="John"
-                                            className="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border transition-shadow"
-                                        />
-                                    </div>
-                                </motion.div>
-
-                                <motion.div variants={itemVariants} className="sm:col-span-3">
-                                    <label htmlFor="last-name" className="block text-sm font-medium text-gray-700">
-                                        Last name
-                                    </label>
-                                    <div className="mt-1">
-                                        <input
-                                            type="text"
-                                            name="last-name"
-                                            id="last-name"
-                                            defaultValue="Doe"
-                                            className="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border transition-shadow"
-                                        />
-                                    </div>
-                                </motion.div>
-
-                                <motion.div variants={itemVariants} className="sm:col-span-4">
-                                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                                        Email address
-                                    </label>
-                                    <div className="mt-1">
-                                        <input
-                                            id="email"
-                                            name="email"
-                                            type="email"
-                                            defaultValue="john.doe@example.com"
-                                            className="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border transition-shadow"
-                                        />
-                                    </div>
-                                </motion.div>
-
-                                <motion.div variants={itemVariants} className="sm:col-span-6">
-                                    <label htmlFor="about" className="block text-sm font-medium text-gray-700">
-                                        Bio
-                                    </label>
-                                    <div className="mt-1">
-                                        <textarea
-                                            id="about"
-                                            name="about"
-                                            rows={3}
-                                            className="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border border-gray-300 rounded-md py-2 px-3 transition-shadow"
-                                            defaultValue="Enthusiastic FinHack participant."
-                                        />
-                                    </div>
-                                    <p className="mt-2 text-sm text-gray-500">Write a few sentences about yourself.</p>
-                                </motion.div>
-                            </div>
-
-                            <motion.div variants={itemVariants} className="pt-5 border-t border-purple-100 flex justify-end">
-                                <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    type="button"
-                                    className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-                                >
-                                    Cancel
-                                </motion.button>
-                                <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    type="submit"
-                                    className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-                                >
-                                    Save
-                                </motion.button>
-                            </motion.div>
-                        </form>
-                    </div>
-                </div>
-            </motion.div>
-        </motion.div>
-    );
+      {/* NEW SECTION: Security & Preferences */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900">Security & Preferences</h2>
+        </div>
+        <div className="p-5 space-y-6">
+          {/* Authentication Settings */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-purple-50 rounded-lg">
+                <Lock size={20} className="text-purple-600" />
+              </div>
+              <div>
+                <p className="font-bold text-gray-900">Password & Authentication</p>
+                <p className="text-sm text-gray-500">Secured via Duo 2FA / Authenticator</p>
+              </div>
+            </div>
+            <button className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+              Change Password
+            </button>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+  );
 }
