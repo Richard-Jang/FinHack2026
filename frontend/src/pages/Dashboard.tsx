@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Bot
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const MOCK_LEAKS = [
   { id: 1, name: "Planet Fitness", amount: 24.99, type: "Unused Subscription", risk: "Low", date: "Apr 1, 2026" },
@@ -28,9 +29,18 @@ const MOCK_TRANSACTIONS = [
 ];
 
 export function Component() {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 100 } }
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-end">
+    <motion.div className="space-y-6" variants={containerVariants} initial="hidden" animate="visible">
+      <motion.div variants={itemVariants} className="flex justify-between items-end">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-500 text-sm">Here's what's happening with your money this month.</p>
@@ -39,36 +49,36 @@ export function Component() {
           <Landmark size={16} className="text-gray-500" />
           <span>Sync Banks</span>
         </button>
-      </div>
+      </motion.div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col">
+        <motion.div variants={itemVariants} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gray-500 text-sm font-medium">Monthly Outflow</h3>
             <div className="bg-fuchsia-50 p-2 rounded-lg"><TrendingDown size={18} className="text-fuchsia-600" /></div>
           </div>
           <span className="text-3xl font-bold text-gray-900">$2,450.80</span>
           <span className="text-xs text-green-600 font-medium mt-2">-12% vs last month</span>
-        </div>
+        </motion.div>
         
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col">
+        <motion.div variants={itemVariants} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gray-500 text-sm font-medium">Active Subscriptions</h3>
             <div className="bg-purple-50 p-2 rounded-lg"><CreditCard size={18} className="text-purple-600" /></div>
           </div>
           <span className="text-3xl font-bold text-gray-900">$142.00</span>
           <span className="text-xs text-gray-500 font-medium mt-2">Across 8 services</span>
-        </div>
+        </motion.div>
 
-        <div className="bg-red-50 p-6 rounded-xl border border-red-100 shadow-sm flex flex-col">
+        <motion.div variants={itemVariants} className="bg-red-50 p-6 rounded-xl border border-red-100 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-red-600 text-sm font-bold">Identified Leaks</h3>
             <div className="bg-red-100 p-2 rounded-lg"><AlertTriangle size={18} className="text-red-600" /></div>
           </div>
           <span className="text-3xl font-bold text-red-700">$113.99</span>
           <span className="text-xs text-red-600 font-medium mt-2">2 actions required</span>
-        </div>
+        </motion.div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -76,7 +86,7 @@ export function Component() {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Money Leaks Section */}
-          <div className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden relative">
+          <motion.div variants={itemVariants} className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden relative">
             <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
             <div className="p-5 border-b border-gray-100 flex justify-between items-center">
               <div>
@@ -103,10 +113,10 @@ export function Component() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Recent Transactions */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <motion.div variants={itemVariants} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="p-5 border-b border-gray-100 flex justify-between items-center">
               <h2 className="text-lg font-bold text-gray-900">Recent Transactions</h2>
               <button className="text-purple-600 text-sm font-medium hover:underline">View All</button>
@@ -127,7 +137,7 @@ export function Component() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
         </div>
 
@@ -135,7 +145,7 @@ export function Component() {
         <div className="space-y-6">
           
           {/* Subscriptions */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <motion.div variants={itemVariants} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
              <div className="p-5 border-b border-gray-100">
               <h2 className="text-lg font-bold text-gray-900">Verified Subscriptions</h2>
             </div>
@@ -155,10 +165,10 @@ export function Component() {
                   Manage Subscriptions <ChevronRight size={16} className="ml-1" />
                 </button>
             </div>
-          </div>
+          </motion.div>
 
           {/* Quick AI Advice Widget */}
-          <div className="bg-gradient-to-br from-fuchsia-50 to-purple-50 rounded-xl border border-purple-100 p-5 shadow-sm">
+          <motion.div variants={itemVariants} className="bg-gradient-to-br from-fuchsia-50 to-purple-50 rounded-xl border border-purple-100 p-5 shadow-sm">
             <div className="flex items-center space-x-2 mb-3">
               <Bot size={20} className="text-purple-600" />
               <h3 className="font-bold text-purple-900">AI Weekly Insight</h3>
@@ -166,10 +176,10 @@ export function Component() {
             <p className="text-sm text-purple-800 leading-relaxed">
               You are on track to spend <strong>15% less</strong> on online shopping this month! Keep it up. However, your dining out budget is getting tight.
             </p>
-          </div>
+          </motion.div>
 
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

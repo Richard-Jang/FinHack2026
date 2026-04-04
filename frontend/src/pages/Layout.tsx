@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Bot, Send, X } from "lucide-react";
+import { useOutlet, Link, useLocation } from "react-router-dom";
+import { ShieldCheck, LayoutDashboard, User, LogOut, Bot, Send, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const AIAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -85,75 +85,75 @@ const AIAssistant = () => {
 };
 
 export function Component() {
-    const location = useLocation();
+  const location = useLocation();
+  const outlet = useOutlet();
 
-    return (
-        <div className="min-h-screen bg-white text-gray-900 font-sans flex flex-col">
-            <motion.header 
-                initial={{ y: -100 }}
-                animate={{ y: 0 }}
-                transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                className="bg-purple-700 text-white shadow-md relative z-10"
+  return (
+    <div className={`transition-colors`}>
+      <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row font-sans text-gray-800 transition-colors">
+        
+        {/* Sidebar Navigation */}
+        <aside className="w-full md:w-64 bg-white border-r border-gray-200 md:min-h-screen flex flex-col relative z-10 transition-colors">
+          <div className="p-6 flex items-center space-x-3 text-purple-600">
+            <ShieldCheck size={28} />
+            <span className="text-xl font-bold text-gray-900 tracking-tight">WalletWatch</span>
+          </div>
+          
+          <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+            <Link 
+              to="/"
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-colors ${
+                location.pathname === '/' 
+                  ? 'bg-purple-50 text-purple-700' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
             >
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16 items-center">
-                        <motion.div 
-                            className="flex-shrink-0 flex items-center"
-                            whileHover={{ scale: 1.05 }}
-                        >
-                            <Link to="/" className="text-2xl font-bold tracking-tight">FinHack</Link>
-                        </motion.div>
-                        <nav className="hidden md:flex space-x-8">
-                            <Link 
-                                to="/" 
-                                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === '/' ? 'bg-purple-800 text-white' : 'text-purple-100 hover:bg-purple-600 hover:text-white'}`}
-                            >
-                                Dashboard
-                            </Link>
-                            <Link 
-                                to="/profile" 
-                                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === '/profile' ? 'bg-purple-800 text-white' : 'text-purple-100 hover:bg-purple-600 hover:text-white'}`}
-                            >
-                                Profile
-                            </Link>
-                            <Link 
-                                to="/sign-in" 
-                                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === '/sign-in' ? 'bg-purple-800 text-white' : 'text-purple-100 hover:bg-purple-600 hover:text-white'}`}
-                            >
-                                Sign In
-                            </Link>
-                            <Link 
-                                to="/sign-out" 
-                                className="px-3 py-2 rounded-md text-sm font-medium text-purple-100 hover:bg-purple-800 transition-colors bg-purple-900/50"
-                            >
-                                Sign Out
-                            </Link>
-                        </nav>
-                    </div>
-                </div>
-            </motion.header>
-
-            <motion.main 
-                key={location.pathname}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
-                className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8"
+              <LayoutDashboard size={20} />
+              <span>Dashboard</span>
+            </Link>
+            <Link 
+              to="/profile"
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-colors ${
+                location.pathname === '/profile' 
+                  ? 'bg-purple-50 text-purple-700' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
             >
-                <Outlet />
-            </motion.main>
+              <User size={20} />
+              <span>Profile</span>
+            </Link>
+          </nav>
 
-            <motion.footer 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
-                className="bg-purple-50 border-t border-purple-100 text-center py-6 text-purple-600 text-sm mt-auto"
+          <div className="p-4 border-t border-gray-200">
+            <Link 
+              to="/sign-out"
+              className="w-full flex items-center space-x-3 px-4 py-2 text-gray-600 hover:text-red-600 font-medium transition-colors rounded-lg hover:bg-red-50"
             >
-                <p>&copy; 2026 FinHack. All rights reserved.</p>
-            </motion.footer>
+              <LogOut size={20} />
+              <span>Log out</span>
+            </Link>
+          </div>
+        </aside>
 
-            <AIAssistant />
-        </div>
-    );
+        {/* Main Content Area */}
+        <main className="flex-1 p-6 md:p-8 lg:p-10 overflow-y-auto relative pb-24 transition-colors">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {outlet}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+
+        {/* Global AI Assistant Overlay */}
+        <AIAssistant />
+        
+      </div>
+    </div>
+  );
 }
