@@ -27,6 +27,11 @@ export const RootRoute: RouteObject = {
             lazy: () => import("./pages/SignOut"),
         },
         {
+            path: "register",
+            hydrateFallbackElement: <PageSkeleton />,
+            lazy: () => import("./pages/Register"),
+        },
+        {
             path: "*",
             hydrateFallbackElement: <PageSkeleton />,
             lazy: () => import("./pages/NotFound"),
