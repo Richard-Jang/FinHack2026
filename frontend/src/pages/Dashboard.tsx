@@ -11,8 +11,8 @@ import {
 import { motion } from 'framer-motion';
 
 const MOCK_LEAKS = [
-  { id: 1, name: "Planet Fitness", amount: 24.99, type: "Unused Subscription", risk: "Low", date: "Apr 1, 2026" },
-  { id: 2, name: "UNKNOWN*WEB-SVC", amount: 89.00, type: "Potential Scam", risk: "High", date: "Mar 28, 2026" },
+  { id: 1, name: "Planet Fitness", amount: 24.99, type: "Unused Subscription", risk: "Low", date: "Apr 1, 2026", url: "https://www.planetfitness.com" },
+  { id: 2, name: "Amazon", amount: 89.00, type: "Potential Scam", risk: "High", date: "Mar 28, 2026", url: "https://www.amazon.com" },
 ];
 
 const MOCK_SUBSCRIPTIONS = [
