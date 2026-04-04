@@ -1,9 +1,34 @@
-import { Plus, ShieldCheck, Lock } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Plus, ShieldCheck, Lock, Moon, Sun } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const MOCK_USER = { name: "Alex Johnson", email: "alex@example.com" };
 
 export function Component() {
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    try {
+      const val = localStorage.getItem('theme');
+      if (val) return val === 'dark';
+      return document.documentElement.classList.contains('dark');
+    } catch (e) {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [isDark]);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -81,7 +106,27 @@ export function Component() {
           </div>
           
         </div>
+<<<<<<< HEAD
+      </div>
+      {/* Animated switch placed at bottom of profile page */}
+      <div className="mt-6 flex items-center justify-center">
+        <div className="flex items-center space-x-4 bg-white rounded-lg border border-gray-100 shadow-sm px-4 py-3">
+          <span className="text-sm text-gray-500">Dark mode</span>
+          <button
+            role="switch"
+            aria-checked={isDark}
+            onClick={() => setIsDark(d => !d)}
+            className="switch-track"
+            aria-label={isDark ? 'Disable dark mode' : 'Enable dark mode'}
+          >
+            <span className="switch-thumb" style={{ transform: isDark ? 'translateX(20px)' : 'translateX(2px)' }} />
+          </button>
+        </div>
+      </div>
+    </div>
+=======
       </motion.div>
     </motion.div>
+>>>>>>> c4f0f166b30ae70ce121544e431c52bb8ee879ae
   );
 }
