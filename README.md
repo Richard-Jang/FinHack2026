@@ -1,6 +1,6 @@
 WalletWatch is a FinTech web application that flags recurring subscriptions and memberships to help users identify hidden expenses and manage their personal finances.
 
-Tech stack: Python (Flask) backend, PostgreSQL (database), React (Vite) frontend, Plaid API.
+Tech stack: Python (Flask) backend, PostgreSQL (database), React (Vite) frontend, Plaid API, Fast API, Ollama (AI functionality).
 
 Features include:
 - Secure bank connection
