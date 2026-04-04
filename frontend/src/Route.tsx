@@ -37,6 +37,31 @@ export const RootRoute: RouteObject = {
             lazy: () => import("./pages/Register"),
         },
         {
+            path: "forgot",
+            hydrateFallbackElement: <PageSkeleton />,
+            lazy: () => import("./pages/Forgot"),
+        },
+        {
+            path: "reset-password",
+            hydrateFallbackElement: <PageSkeleton />,
+            lazy: () => import("./pages/ResetPassword"),
+        },
+        {
+            path: "set-mfa",
+            hydrateFallbackElement: <PageSkeleton />,
+            lazy: () => import("./pages/SetMFA"),
+        },
+        {
+            path: "mfa",
+            hydrateFallbackElement: <PageSkeleton />,
+            lazy: () => import("./pages/MFA"),
+        },
+        {
+            path: "loading",
+            hydrateFallbackElement: <PageSkeleton />,
+            lazy: () => import("./pages/Loading"),
+        },
+        {
             path: "*",
             hydrateFallbackElement: <PageSkeleton />,
             lazy: () => import("./pages/NotFound"),

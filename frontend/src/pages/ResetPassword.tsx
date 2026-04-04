@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion, type Variants } from "framer-motion";
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
@@ -7,13 +7,13 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 
 const schema = yup.object({
-  email: yup.string().email("Invalid email").required("Email is required"),
+  password: yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
 }).required();
 
 type FormData = yup.InferType<typeof schema>;
 
 export function Component() {
-    const [message, setMessage] = useState<string | null>(null);
+    const navigate = useNavigate();
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -37,16 +37,16 @@ export function Component() {
     const onSubmit = async (data: FormData) => {
         setLoading(true);
         setError(null);
-        setMessage(null);
 
-        const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-            redirectTo: window.location.origin + '/reset-password',
+        const { error } = await supabase.auth.updateUser({
+            password: data.password
         });
 
         if (error) {
             setError(error.message);
         } else {
-            setMessage("Check your email for the password reset link.");
+            // Success, navigate to dashboard
+            navigate('/');
         }
         setLoading(false);
     };
@@ -60,10 +60,10 @@ export function Component() {
                 transition={{ duration: 0.5, ease: "easeOut" }}
             >
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-purple-900">
-                    Reset your password
+                    Set new password
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
-                    Enter your email to receive recovery instructions.
+                    Please enter your new password below.
                 </p>
             </motion.div>
 
@@ -82,22 +82,17 @@ export function Component() {
                                 {error}
                             </div>
                         )}
-                        {message && (
-                            <div className="p-3 bg-green-100 text-green-700 rounded-lg text-sm">
-                                {message}
-                            </div>
-                        )}
                         <motion.div variants={itemVariants}>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                                Email address
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                                New Password
                             </label>
                             <div className="mt-1">
                                 <input
-                                    type="email"
-                                    {...register("email")}
+                                    type="password"
+                                    {...register("password")}
                                     className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm transition-shadow"
                                 />
-                                <p className="text-red-500 text-xs mt-1 h-4">{errors.email?.message}</p>
+                                <p className="text-red-500 text-xs mt-1 h-4">{errors.password?.message}</p>
                             </div>
                         </motion.div>
 
@@ -109,17 +104,8 @@ export function Component() {
                                 disabled={loading}
                                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors disabled:opacity-50"
                             >
-                                {loading ? 'Sending...' : 'Send reset link'}
+                                {loading ? 'Updating...' : 'Update password'}
                             </motion.button>
-                        </motion.div>
-                        
-                        <motion.div variants={itemVariants} className="text-sm text-center">
-                            <Link to="/sign-in" className="font-medium text-purple-600 hover:text-purple-500 flex items-center justify-center gap-1 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                </svg>
-                                Back to login
-                            </Link>
                         </motion.div>
                     </form>
                 </div>

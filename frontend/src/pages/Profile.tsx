@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, ShieldCheck, Lock, Moon, Sun } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 
 const MOCK_USER = { name: "Alex Johnson", email: "alex@example.com" };
 
@@ -29,11 +29,11 @@ export function Component() {
     }
   }, [isDark]);
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 100 } }
   };
@@ -106,8 +106,7 @@ export function Component() {
           </div>
           
         </div>
-<<<<<<< HEAD
-      </div>
+      </motion.div>
       {/* Animated switch placed at bottom of profile page */}
       <div className="mt-6 flex items-center justify-center">
         <div className="flex items-center space-x-4 bg-white rounded-lg border border-gray-100 shadow-sm px-4 py-3">
@@ -123,10 +122,6 @@ export function Component() {
           </button>
         </div>
       </div>
-    </div>
-=======
-      </motion.div>
     </motion.div>
->>>>>>> c4f0f166b30ae70ce121544e431c52bb8ee879ae
   );
 }

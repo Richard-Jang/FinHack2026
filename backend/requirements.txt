@@ -2,3 +2,4 @@ fastapi
 uvicorn
 plaid-python
 python-dotenv
+requests

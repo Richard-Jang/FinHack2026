@@ -6,9 +6,21 @@ import {
   PieChart, 
   Landmark, 
   ChevronRight,
-  Bot
+  Bot,
+  TrendingUp
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { supabase } from '../supabaseClient';
+import { useAuth } from '../AuthContext';
+
+export interface Transaction {
+  id?: number | string;
+  name: string;
+  date: string;
+  amount: number;       // can be positive or negative
+  user_id?: string;
+}
 
 const MOCK_LEAKS = [
   { id: 1, name: "Planet Fitness", amount: 24.99, type: "Unused Subscription", risk: "Low", date: "Apr 1, 2026", url: "https://www.planetfitness.com" },
@@ -21,19 +33,61 @@ const MOCK_SUBSCRIPTIONS = [
   { id: 3, name: "Amazon Prime", amount: 14.99, status: "Active", nextBilling: "May 2, 2026" },
 ];
 
-const MOCK_TRANSACTIONS = [
-  { id: 1, merchant: "Whole Foods", amount: 142.50, category: "Groceries", date: "Apr 2, 2026" },
-  { id: 2, merchant: "Uber", amount: 18.20, category: "Transport", date: "Apr 1, 2026" },
-  { id: 3, merchant: "Starbucks", amount: 6.50, category: "Dining", date: "Apr 1, 2026" },
-  { id: 4, merchant: "Target", amount: 84.12, category: "Shopping", date: "Mar 30, 2026" },
-];
-
 export function Component() {
-  const containerVariants = {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loadingGenerate, setLoadingGenerate] = useState(false);
+  const { user } = useAuth();
+
+  const fetchTransactions = useCallback(async () => {
+    if (!user?.id) return;
+    const { data, error } = await supabase.from("transactions").select("*").order("date", { ascending: false });
+    if (error) console.error("Error fetching transactions:", error);
+    if (data) setTransactions(data);
+  }, [user?.id]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  const handleGenerate = useCallback(async () => {
+    if (!user?.id) {
+        alert("Authentication context not fully loaded. Please wait or sign in again.");
+        return;
+    }
+    
+    setLoadingGenerate(true);
+    const mockData: Transaction[] = [
+      { name: "Whole Foods", amount: -142.50, date: new Date().toISOString(), user_id: user.id },
+      { name: "Uber", amount: -18.20, date: new Date().toISOString(), user_id: user.id },
+      { name: "Starbucks", amount: -6.50, date: new Date().toISOString(), user_id: user.id },
+      { name: "Target", amount: -84.12, date: new Date().toISOString(), user_id: user.id },
+      { name: "Salary", amount: 3000.00, date: new Date().toISOString(), user_id: user.id },
+      { name: "Rent", amount: -1500.00, date: new Date(Date.now() - 86400000).toISOString(), user_id: user.id }
+    ];
+    
+    // Attempt insertion without .select() because returning rows requires a SELECT policy
+    const { error } = await supabase.from("transactions").insert(mockData);
+    if (error) {
+      console.error("Error generating data:", error);
+      alert("Database error: Ensure the 'transactions' table exists with valid columns. " + error.message);
+    } else {
+      // Append the mockData manually to UI since we can't fetch it without select privileges
+      setTransactions(prev => [...mockData, ...prev]);
+    }
+    setLoadingGenerate(false);
+  }, [user?.id]);
+
+  const monthlyOutflow = useMemo(() => {
+    return transactions
+      .filter(t => t.amount < 0)
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  }, [transactions]);
+
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 100 } }
   };
@@ -45,10 +99,15 @@ export function Component() {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-500 text-sm">Here's what's happening with your money this month.</p>
         </div>
-        <button className="hidden md:flex items-center space-x-2 bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
-          <Landmark size={16} className="text-gray-500" />
-          <span>Sync Banks</span>
-        </button>
+        <div className="hidden md:flex items-center space-x-3">
+          <button onClick={handleGenerate} disabled={loadingGenerate} className="flex items-center space-x-2 bg-purple-50 border border-purple-200 px-4 py-2 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-100 transition-colors shadow-sm disabled:opacity-50">
+            {loadingGenerate ? 'Generating...' : 'Generate Data'}
+          </button>
+          <button className="flex items-center space-x-2 bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
+            <Landmark size={16} className="text-gray-500" />
+            <span>Sync Banks</span>
+          </button>
+        </div>
       </motion.div>
 
       {/* Summary Cards */}
@@ -58,8 +117,8 @@ export function Component() {
             <h3 className="text-gray-500 text-sm font-medium">Monthly Outflow</h3>
             <div className="bg-fuchsia-50 p-2 rounded-lg"><TrendingDown size={18} className="text-fuchsia-600" /></div>
           </div>
-          <span className="text-3xl font-bold text-gray-900">$2,450.80</span>
-          <span className="text-xs text-green-600 font-medium mt-2">-12% vs last month</span>
+          <span className="text-3xl font-bold text-gray-900">${monthlyOutflow.toFixed(2)}</span>
+          <span className="text-xs text-green-600 font-medium mt-2">Based on your activity</span>
         </motion.div>
         
         <motion.div variants={itemVariants} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col">
@@ -122,18 +181,26 @@ export function Component() {
               <button className="text-purple-600 text-sm font-medium hover:underline">View All</button>
             </div>
             <div className="divide-y divide-gray-50">
-              {MOCK_TRANSACTIONS.map(tx => (
-                <div key={tx.id} className="p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
+              {transactions.length === 0 ? (
+                <div className="p-8 text-center text-sm text-gray-500 bg-gray-50">
+                  No transactions available.
+                  <br />
+                  <span className="text-xs text-gray-400">Click &apos;Generate Data&apos; to add some.</span>
+                </div>
+              ) : transactions.slice(0, 8).map((tx, i) => (
+                <div key={tx.id || i} className="p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
                   <div className="flex items-center space-x-4">
-                    <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
-                      {tx.category === 'Groceries' ? <PieChart size={18}/> : <Wallet size={18}/>}
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center ${tx.amount > 0 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+                      {tx.amount > 0 ? <TrendingUp size={18}/> : (tx.amount < -100 ? <PieChart size={18}/> : <Wallet size={18}/>)}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{tx.merchant}</p>
-                      <p className="text-xs text-gray-500">{tx.category} • {tx.date}</p>
+                      <p className="font-medium text-gray-900">{tx.name}</p>
+                      <p className="text-xs text-gray-500">{new Date(tx.date).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <span className="font-semibold text-gray-900">-${tx.amount.toFixed(2)}</span>
+                  <span className={`font-semibold ${tx.amount > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                    {tx.amount > 0 ? '+' : '-'}${Math.abs(tx.amount).toFixed(2)}
+                  </span>
                 </div>
               ))}
             </div>

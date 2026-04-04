@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
-import { BrowserRouter, createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { RootRoute } from './Route';
+import { AuthProvider } from './AuthContext';
 
 const App = () => {
   const [linkToken, setLinkToken] = useState<string | null>(null);
@@ -30,7 +31,7 @@ const App = () => {
     onSuccess,
   };
 
-  const { open, ready } = usePlaidLink(config);
+  // const { open, ready } = usePlaidLink(config);
 
   const router = createBrowserRouter([RootRoute], {});
     
@@ -46,7 +47,9 @@ const App = () => {
     //     Connect a Bank Account
     //   </button>
     // </div>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   );
 };
 

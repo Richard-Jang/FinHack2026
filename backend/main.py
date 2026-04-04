@@ -12,6 +12,9 @@ from plaid.model.products import Products
 from plaid.model.country_code import CountryCode
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
 from plaid.model.accounts_get_request import AccountsGetRequest
+import requests
+from pydantic import BaseModel, Field
+from contextlib import asynccontextmanager
 
 # load vars
 load_dotenv()
@@ -38,6 +41,9 @@ configuration = plaid.Configuration(
 )
 api_client = plaid.ApiClient(configuration)
 client = plaid_api.PlaidApi(api_client)
+
+# initialize ollama
+OLLAMA_BASE_URL = "http://localhost:11434/api/generate"
 
 # simple JSON-backed store for connected banks
 DATA_PATH = Path(__file__).resolve().parent / "connected_banks.json"
@@ -110,6 +116,140 @@ async def exchange_public_token(req: Request):
 @app.get("/api/connected_banks")
 async def get_connected_banks():
     return load_banks()
+
+
+"""
+Request Schema:
+{
+    prompt: string,
+    conversation: string[],
+    user_background: {
+        monthlyBills: string[],
+        transactions: string[],
+        monthlyIncome: float,
+        creditScore: int,
+    },
+}
+
+Return Schema:
+{
+    response: string,
+}
+"""
+class AI_Conversation_Request(BaseModel):
+    prompt: str
+    conversation: list = Field(default_factory=list)
+    user_background: dict = Field(default_factory=dict)
+
+
+@app.post("/api/ai_conversation")
+async def ai_conversation(data: AI_Conversation_Request):
+
+    # parse parameters for information
+    final_conversation = ""
+    for (i, line) in enumerate(data.conversation):
+        final_conversation += "Client: " if i % 2 == 1 else "Advisor: "
+        final_conversation += (line + '\n')
+    model = "llama3"
+
+    final_prompt = f"""
+You are currently a chatbot used for financial advice. On each one of your responses, give no more than 150 words. The shorter, the better. Below is the information of the person you are advising.
+{str(data.user_background)}
+
+Here is the current conversation:
+{final_conversation}
+
+Next prompt from the user: {data.prompt}
+
+If the user does not ask a question, ask what their plans are or how you can help them.
+Remove any words that are unnecessary and remove styling using characters including newline. Write everything in paragraph form.
+"""
+
+    # build payload using components
+    payload = {
+        "model": model,
+        "prompt": final_prompt,
+        "stream": False,
+    }
+
+    # call the model
+    try:
+        response = requests.post(OLLAMA_BASE_URL, json=payload)
+        response.raise_for_status()
+
+        result = response.json()
+        return {"response": result.get("response")}
+    except requests.exceptions.ConnectionError:
+        return {"error": "Failed to connect to Ollama. Is it running on localhost:11434?"}
+    except Exception as e:
+        return {"error": str(e)}
+
+"""
+Request Schema:
+{
+    history: { name: string, amount: float }[],
+}
+
+Response Schema:
+{
+    chart: { label: string, percentage: int },
+    advice: { response: string },
+}
+"""
+
+class AI_Generate_Spending_Summary(BaseModel):
+    history: list = Field(default_factory=list)
+
+@app.post("/api/generate_spending_summary")
+async def generate_spending_summary(data: AI_Generate_Spending_Summary):
+
+    model = "llama3"
+    prompt = f"""
+Categorize the spending history into the following labels:
+
+Labels:
+Housing: Rent or mortgage, property taxes, maintenance, and HOA fees. 
+Utilities: Electricity, gas, water, internet, and phone bills. 
+Food: Groceries, meal kits, and occasional dining out. 
+Transportation: Fuel, public transit, vehicle maintenance, and registration fees.
+Debt: Minimum payments for credit cards, student loans, and auto loans. 
+Insurance: Health, auto, life, and home or renters insurance.
+Medical: Out-of-pocket costs, prescriptions, and dental or vision care.
+
+History:
+{data.history}
+
+Following that, give some advice on how to cut down on costs.
+
+Give your response with the following format and nothing more. Add no additional text or keys to the response. The response should be a json object
+{{chart: {{ label: 'Housing' | 'Utilities' | 'Food' | 'Transportation' | 'Debt' | 'Insurance' | 'Medical', percentage: int }}, advice: {{ response: string }}}}
+"""
+    
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+    }
+
+    try:
+        response = requests.post(OLLAMA_BASE_URL, json=payload)
+        response.raise_for_status()
+
+        result = response.json()
+        parsed_response = result.get("response", "{}")
+
+        parsed_json = json.loads(parsed_response)
+
+        chart = parsed_json.get("chart")
+        advice_dict = parsed_json.get("advice", {})
+
+        advice_text = advice_dict.get("response", "No advice provided.")
+
+        return {"chart": chart, "advice": advice_text}
+    except requests.exceptions.ConnectionError:
+        return {"error": "Failed to connect to Ollama. Is it running on localhost:11434?"}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 if __name__ == "__main__":
